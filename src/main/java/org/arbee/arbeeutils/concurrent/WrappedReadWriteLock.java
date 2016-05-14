@@ -45,11 +45,11 @@ public class WrappedReadWriteLock {
         this.wrappedLockFromLockFunction = wrappedLockFromLockFunction;
     }
 
-   public WrappedReadWriteLock(@NotNull final ReadWriteLock delegate) {
-       this(delegate,
-            WrappedLock::new);
+    public WrappedReadWriteLock(@NotNull final ReadWriteLock delegate) {
+        this(delegate,
+             WrappedLock::new);
 
-       assert delegate != null;
+        assert delegate != null;
     }
 
     @NotNull
