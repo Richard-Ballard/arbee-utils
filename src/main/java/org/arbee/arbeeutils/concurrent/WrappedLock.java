@@ -20,6 +20,8 @@ import net.jcip.annotations.ThreadSafe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Supplier;
 
@@ -51,15 +53,44 @@ public class WrappedLock {
         }
     }
 
-    public void inLock(@NotNull final Runnable operation) {
+    @Nullable
+    public <T> T inLock(@NotNull final Duration aquireTimeout,
+                        @NotNull final Supplier<T> operation) throws AquireTimeoutException {
+        assert aquireTimeout != null;
         assert operation != null;
 
-        delegate.lock();
+        if(!MoreUninterruptibles.tryLockUninterruptibly(delegate,
+                                                        aquireTimeout)) {
+            throw new AquireTimeoutException();
+        }
         try {
-            operation.run();
+            return operation.get();
         }
         finally {
             delegate.unlock();
         }
+    }
+
+    public void inLock(@NotNull final Runnable operation) {
+        assert operation != null;
+
+        inLock(() -> {
+            operation.run();
+
+            return null;
+        });
+    }
+
+    public void inLock(@NotNull final Duration aquireTimeout,
+                       @NotNull final Runnable operation) throws AquireTimeoutException {
+        assert aquireTimeout != null;
+        assert operation != null;
+
+        inLock(aquireTimeout,
+               () -> {
+                   operation.run();
+
+                   return null;
+               });
     }
 }

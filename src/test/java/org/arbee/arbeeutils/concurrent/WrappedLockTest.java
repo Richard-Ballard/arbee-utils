@@ -19,13 +19,14 @@ package org.arbee.arbeeutils.concurrent;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @Test
 public class WrappedLockTest {
@@ -34,36 +35,6 @@ public class WrappedLockTest {
     @NotNull
     private Lock getDelegate() {
         return mock(Lock.class);
-    }
-
-    public void inLockRunnableLocks() {
-        final Lock delegate = getDelegate();
-
-        final WrappedLock lock = new WrappedLock(delegate);
-
-        lock.inLock(() -> verify(delegate).lock());
-    }
-
-    public void inLockRunnableUnlocks() {
-        final Lock delegate = getDelegate();
-
-        final WrappedLock lock = new WrappedLock(delegate);
-
-        lock.inLock(() -> {});
-
-        verify(delegate).unlock();
-    }
-
-    public void inLockRunnableUnlocksWhenException() {
-        final Lock delegate = getDelegate();
-
-        final RuntimeException exc = new RuntimeException("test");
-
-        assertThatThrownBy(() -> new WrappedLock(delegate).inLock(() -> {
-            throw exc;
-        })).isEqualTo(exc);
-
-        verify(delegate).unlock();
     }
 
     public void inLockSupplierLocks() {
@@ -110,5 +81,29 @@ public class WrappedLockTest {
                 .isEqualTo(exc);
 
         verify(delegate).unlock();
+    }
+
+    @SuppressWarnings("unchecked")
+    @NotNull
+    private Supplier<String> getSupplier() {
+        return mock(Supplier.class);
+    }
+
+    public void inLockSupplierTimeoutDoesntCallOperationOrUnlock() throws InterruptedException {
+        final Duration timeout = Duration.ofDays(123L);
+
+        final Lock delegate = getDelegate();
+        when(delegate.tryLock(timeout.toNanos(),
+                              TimeUnit.NANOSECONDS))
+                .thenReturn(false);
+
+
+        final Supplier<String> supplier = getSupplier();
+        assertThatThrownBy(() -> new WrappedLock(delegate).inLock(timeout,
+                                                                  supplier))
+                .isInstanceOf(AquireTimeoutException.class);
+
+        verify(supplier, never()).get();
+        verify(delegate, never()).unlock();
     }
 }
