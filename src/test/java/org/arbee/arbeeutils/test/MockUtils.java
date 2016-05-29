@@ -25,12 +25,14 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+// todo - RMB 2016/5/29 - how to get testng to fail on skipped tests?s
 public enum MockUtils {
     ;
 
     /**
      * Returns a mock function that always returns {@code value}.
      */
+    @SuppressWarnings("unchecked")
     @NotNull
     public static <K, V> Function<K, V> mockFunctionSingleAnswer(@NotNull final Class<? extends K> keyClass,
                                                                  @Nullable final V value) {
