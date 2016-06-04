@@ -16,6 +16,7 @@
 
 package org.arbee.arbeeutils.test;
 
+import net.jcip.annotations.ThreadSafe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,7 +26,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-// todo - RMB 2016/5/29 - how to get testng to fail on skipped tests?s
+@ThreadSafe
 public enum MockUtils {
     ;
 
