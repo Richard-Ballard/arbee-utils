@@ -16,15 +16,23 @@
 
 package org.arbee.arbeeutils.concurrent;
 
+import com.google.common.annotations.VisibleForTesting;
 import net.jcip.annotations.ThreadSafe;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.StampedLock;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
  * This class is a wrapper around an instance of {@link StampedLock} that allows the caller to use the delegate
  * in a more functional manner.
+ * <p/>
+ * As with {@link StampedLock} this lock is non-reentrant, i.e. if a thread holds a lock and then attempts to aquire
+ * another lock then it will deadlock.
  * <p/>
  * For read locks it has the concept of {@code pessimistic} and {@code optimistic} read locks.
  * <p/>
@@ -35,7 +43,7 @@ import java.util.function.Supplier;
  * <p/>
  * <b>Optimistic Read Locks</b>
  * <p/>
- * Optimistic locks may be are 'started' while there are any other kind of locks (including write locks) outstanding.
+ * Optimistic locks may be 'started' while there are any other kind of locks (including write locks) outstanding.
  * Once the operation is finished the code tests to see if a write lock was in progress during the operation and if
  * so then the optimistic lock fails.  The code attempts a number of optimistic locks before failing over to an pessimistic
  * lock.  Because of this very loose kind of locking (and the fact that the operation may be called any number of times),
@@ -52,16 +60,51 @@ public class WrappedStampedLock {
     @NotNull
     private final StampedLock delegate;
 
-    public WrappedStampedLock(@NotNull final StampedLock delegate) {
+    @NotNull
+    private final Function<ReadWriteLock, WrappedReadWriteLock> wrappedReadWriteLockFromReadWriteLockFunction;
+
+    @NotNull
+    private final Function<Lock, WrappedLock> wrappedLockFromLockFunction;
+
+    @VisibleForTesting
+    WrappedStampedLock(@NotNull final StampedLock delegate,
+                       @NotNull final Function<ReadWriteLock, WrappedReadWriteLock> wrappedReadWriteLockFromReadWriteLockFunction,
+                       @NotNull final Function<Lock, WrappedLock> wrappedLockFromLockFunction) {
         assert delegate != null;
+        assert wrappedReadWriteLockFromReadWriteLockFunction != null;
+        assert wrappedLockFromLockFunction != null;
 
         this.delegate = delegate;
+        this.wrappedReadWriteLockFromReadWriteLockFunction = wrappedReadWriteLockFromReadWriteLockFunction;
+        this.wrappedLockFromLockFunction = wrappedLockFromLockFunction;
+    }
+
+    public WrappedStampedLock(@NotNull final StampedLock delegate) {
+        this(delegate,
+             WrappedReadWriteLock::new,
+             WrappedLock::new);
+
+        assert delegate != null;
     }
 
     public WrappedStampedLock() {
         this(new StampedLock());
     }
 
+    @NotNull
+    public WrappedReadWriteLock asReadWriteLock() {
+        return Objects.requireNonNull(wrappedReadWriteLockFromReadWriteLockFunction.apply(delegate.asReadWriteLock()));
+    }
+
+    @NotNull
+    public WrappedLock asReadLock() {
+        return Objects.requireNonNull(wrappedLockFromLockFunction.apply(delegate.asReadLock()));
+    }
+
+    @NotNull
+    public WrappedLock asWriteLock() {
+        return Objects.requireNonNull(wrappedLockFromLockFunction.apply(delegate.asWriteLock()));
+    }
 
     /**
      * Runs the given {@code operation} in a pessimistic read lock.  While the operation is running the only other

@@ -16,10 +16,14 @@
 
 package org.arbee.arbeeutils.concurrent;
 
+import org.arbee.arbeeutils.test.MockUtils;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.StampedLock;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,6 +56,38 @@ public class WrappedStampedLockTest {
                 .thenReturn(writeStamp);
 
         return lock;
+    }
+
+    @NotNull
+    private StampedLock getAsDelegate(@NotNull final ReadWriteLock readWriteLock,
+                                      @NotNull final Lock readLock,
+                                      @NotNull final Lock writeLock) {
+        assert readWriteLock != null;
+        assert readLock != null;
+        assert writeLock != null;
+
+        final StampedLock lock = mock(StampedLock.class);
+
+        when(lock.asReadWriteLock())
+                .thenReturn(readWriteLock);
+
+        when(lock.asReadLock())
+                .thenReturn(readLock);
+
+        when(lock.asWriteLock())
+                .thenReturn(writeLock);
+
+        return lock;
+    }
+
+    @NotNull
+    private ReadWriteLock getReadWriteLock() {
+        return mock(ReadWriteLock.class);
+    }
+
+    @NotNull
+    private Lock getLock() {
+        return mock(Lock.class);
     }
 
     public void pessimisticReadUnlocksOnSuccessful() {
@@ -188,6 +224,97 @@ public class WrappedStampedLockTest {
                 .isEqualTo(exc);
 
         verify(delegate).unlockWrite(stamp);
+    }
+
+    @NotNull
+    private Function<ReadWriteLock, WrappedReadWriteLock>
+    getWrappedReadWriteLockFromReadWriteLockFunction(@NotNull final WrappedReadWriteLock wrappedReadWriteLock) {
+        assert wrappedReadWriteLock != null;
+
+        return MockUtils.mockFunctionSingleAnswer(ReadWriteLock.class,
+                                                  wrappedReadWriteLock);
+    }
+
+    @NotNull
+    private Function<Lock, WrappedLock>  getWrappedLockFromLockFunction(@NotNull final WrappedLock wrappedLock) {
+        assert wrappedLock != null;
+
+        return MockUtils.mockFunctionSingleAnswer(Lock.class,
+                                                  wrappedLock);
+    }
+
+    @NotNull
+    private WrappedReadWriteLock getWrappedReadWriteLock() {
+        return mock(WrappedReadWriteLock.class);
+    }
+
+    @NotNull
+    private WrappedLock getWrappedLock() {
+        return mock(WrappedLock.class);
+    }
+
+    public void asReadWriteLockCallsFunction() {
+        final WrappedReadWriteLock wrappedReadWriteLock = getWrappedReadWriteLock();
+
+        final ReadWriteLock readWriteLock = getReadWriteLock();
+
+        final Function<ReadWriteLock, WrappedReadWriteLock> wrappedReadWriteLockFromReadWriteLockFunction =
+                getWrappedReadWriteLockFromReadWriteLockFunction(wrappedReadWriteLock);
+
+        final WrappedStampedLock lock = new WrappedStampedLock(getAsDelegate(readWriteLock,
+                                                                             getLock(),
+                                                                             getLock()),
+                                                               wrappedReadWriteLockFromReadWriteLockFunction,
+                                                               getWrappedLockFromLockFunction(getWrappedLock()));
+
+        assertThat(lock.asReadWriteLock())
+                .isEqualTo(wrappedReadWriteLock);
+
+        verify(wrappedReadWriteLockFromReadWriteLockFunction).apply(readWriteLock);
+    }
+
+    public void asReadLockCallsFunction() {
+        final WrappedLock wrappedLock = getWrappedLock();
+
+        final Lock sourceLock = getLock();
+
+        final Function<Lock, WrappedLock> wrappedLockFromLockFunction = getWrappedLockFromLockFunction(wrappedLock);
+
+        final StampedLock delegate = getAsDelegate(getReadWriteLock(),
+                                                   sourceLock,
+                                                   getLock());
+
+        final WrappedStampedLock lock = new WrappedStampedLock(delegate,
+                                                               getWrappedReadWriteLockFromReadWriteLockFunction(getWrappedReadWriteLock()),
+                                                               wrappedLockFromLockFunction);
+
+        assertThat(lock.asReadLock())
+                .isEqualTo(wrappedLock);
+
+        verify(delegate).asReadLock();
+        verify(wrappedLockFromLockFunction).apply(sourceLock);
+    }
+
+    public void asWriteLockCallsFunction() {
+        final WrappedLock wrappedLock = getWrappedLock();
+
+        final Lock sourceLock = getLock();
+
+        final Function<Lock, WrappedLock> wrappedLockFromLockFunction = getWrappedLockFromLockFunction(wrappedLock);
+
+        final StampedLock delegate = getAsDelegate(getReadWriteLock(),
+                                                   getLock(),
+                                                   sourceLock);
+
+        final WrappedStampedLock lock = new WrappedStampedLock(delegate,
+                                                               getWrappedReadWriteLockFromReadWriteLockFunction(getWrappedReadWriteLock()),
+                                                               wrappedLockFromLockFunction);
+
+        assertThat(lock.asWriteLock())
+                .isEqualTo(wrappedLock);
+
+        verify(delegate).asWriteLock();
+        verify(wrappedLockFromLockFunction).apply(sourceLock);
     }
 
 }
