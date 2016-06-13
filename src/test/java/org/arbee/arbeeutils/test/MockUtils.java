@@ -20,7 +20,9 @@ import net.jcip.annotations.ThreadSafe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -45,5 +47,26 @@ public enum MockUtils {
                 .thenReturn(value);
 
         return function;
+    }
+
+    @SuppressWarnings("unchecked")
+    @NotNull
+    public static <V> Supplier<V> mockSupplierSingleAnswer(@Nullable final V value) {
+        final Supplier<V> supplier = mock(Supplier.class);
+
+        when(supplier.get())
+                .thenReturn(value);
+
+        return supplier;
+    }
+
+    @NotNull
+    public static BooleanSupplier mockBooleanSupplierSingleAnswer(final boolean value) {
+        final BooleanSupplier supplier = mock(BooleanSupplier.class);
+
+        when(supplier.getAsBoolean())
+                .thenReturn(value);
+
+        return supplier;
     }
 }

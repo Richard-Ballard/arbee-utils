@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.StampedLock;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -189,5 +190,69 @@ public class WrappedStampedLock {
             //noinspection ReturnOfNull
             return null;
         });
+    }
+
+    public enum TestFailedLockContext {
+        /**
+         * The operation will be run from within a pessimistic read lock
+         */
+        IN_PESSIMISTIC_READ_LOCK,
+
+        /**
+         * The operation will not be run in any lock
+         */
+        NO_LOCK
+    }
+
+    // todo - do a timeout version - RMB 2016/6/11
+    // todo - do a void version - RMB 2016/6/11
+
+    /**
+     *
+     * @param test this will be run in a pessimistic read lock.  If it passes (returns true) then a write lock will be
+     *             obtained and {@code onTestPassedOperation} will be run and the result returned.  If it fails (returns
+     *             false) then {@lonk onTestFailedOperation} will be run and the result returned.
+     * @param onTestPassedOperation This will be run (and result returned) if {@code test} returns true.
+     * @param onTestFailedOperation This will be run (and result returned) if {@code test} returns false.  The lock
+     *                              context that will be used when this is called is determined by the value of
+     *                              {@code testFailedLockContext}.
+     * @param testFailedLockContext If the test fails then {@code onTestFailedOperation} will be called.  This parameter
+     *                              determines what sort of lock to use (if any) when calling {@code testFailedLockContext}.
+     */
+    public <T> T writeIf(@NotNull final BooleanSupplier test,
+                         @NotNull final Supplier<T> onTestPassedOperation,
+                         @NotNull final Supplier<T> onTestFailedOperation,
+                         @NotNull final TestFailedLockContext testFailedLockContext) {
+        assert test != null;
+        assert onTestPassedOperation != null;
+        assert onTestFailedOperation != null;
+        assert testFailedLockContext != null;
+
+        long stamp = delegate.readLock();
+        try {
+            while(test.getAsBoolean()) {
+                final long writeStamp = delegate.tryConvertToWriteLock(stamp);
+                if(writeStamp == 0L) {              // conversion failed
+                    delegate.unlockRead(stamp);
+                    stamp = delegate.writeLock();
+                }
+                else {                              // conversion was successful
+                    stamp = writeStamp;
+
+                    return onTestPassedOperation.get();
+                }
+            }
+
+            if(testFailedLockContext == TestFailedLockContext.IN_PESSIMISTIC_READ_LOCK) {
+                return onTestFailedOperation.get();
+            }
+        }
+        finally {
+            delegate.unlock(stamp); // could be read or write lock
+        }
+
+        assert testFailedLockContext == TestFailedLockContext.NO_LOCK : testFailedLockContext;
+
+        return onTestFailedOperation.get();
     }
 }

@@ -16,15 +16,22 @@
 
 package org.arbee.arbeeutils.concurrent;
 
+import com.google.common.collect.ImmutableList;
 import org.arbee.arbeeutils.test.MockUtils;
 import org.jetbrains.annotations.NotNull;
+import org.mockito.AdditionalAnswers;
+import org.mockito.verification.VerificationMode;
 import org.testng.annotations.Test;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.StampedLock;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,7 +47,12 @@ public class WrappedStampedLockTest {
     private StampedLock getDelegate(final long readLockStamp,
                                     final long optimisticReadStamp,
                                     final boolean isValidStamp,
-                                    final long writeStamp) {
+                                    final long writeStamp,
+                                    @NotNull final long... tryConvertToWriteLockStamp) {
+        assert tryConvertToWriteLockStamp != null;
+
+        assert tryConvertToWriteLockStamp.length > 0;
+
         final StampedLock lock = mock(StampedLock.class);
 
         when(lock.readLock())
@@ -54,6 +66,20 @@ public class WrappedStampedLockTest {
 
         when(lock.writeLock())
                 .thenReturn(writeStamp);
+
+
+        final List<Long> allConvert = Arrays.stream(tryConvertToWriteLockStamp)
+                                            .boxed()
+                                            .collect(Collectors.toList());
+
+        final Long[] subsequentConvert = (allConvert.size() > 1) ? allConvert.subList(1,
+                                                                                      allConvert.size())
+                                                                             .toArray(new Long[allConvert.size() - 1])
+                                                                 : new Long[0];
+
+        when(lock.tryConvertToWriteLock(anyLong()))
+                .thenReturn(allConvert.get(0),
+                            subsequentConvert);
 
         return lock;
     }
@@ -95,6 +121,7 @@ public class WrappedStampedLockTest {
         final StampedLock delegate = getDelegate(stamp,
                                                  ANY_STAMP,
                                                  ANY_IS_VALID_STAMP,
+                                                 ANY_STAMP,
                                                  ANY_STAMP);
 
         final WrappedStampedLock lock = new WrappedStampedLock(delegate);
@@ -120,6 +147,7 @@ public class WrappedStampedLockTest {
         final StampedLock delegate = getDelegate(stamp,
                                                  ANY_STAMP,
                                                  ANY_IS_VALID_STAMP,
+                                                 ANY_STAMP,
                                                  ANY_STAMP);
 
         final WrappedStampedLock lock = new WrappedStampedLock(delegate);
@@ -146,6 +174,7 @@ public class WrappedStampedLockTest {
         final StampedLock delegate = getDelegate(readLockStamp,
                                                  optimisticReadStamp,
                                                  false,
+                                                 ANY_STAMP,
                                                  ANY_STAMP);
 
         final WrappedStampedLock lock = new WrappedStampedLock(delegate);
@@ -164,6 +193,7 @@ public class WrappedStampedLockTest {
         final StampedLock delegate = getDelegate(ANY_STAMP,
                                                  optimisticReadStamp,
                                                  true,
+                                                 ANY_STAMP,
                                                  ANY_STAMP);
 
         final WrappedStampedLock lock = new WrappedStampedLock(delegate);
@@ -183,7 +213,8 @@ public class WrappedStampedLockTest {
         final StampedLock delegate = getDelegate(ANY_STAMP,
                                                  ANY_STAMP,
                                                  ANY_IS_VALID_STAMP,
-                                                 writeStamp);
+                                                 writeStamp,
+                                                 ANY_STAMP);
 
         final WrappedStampedLock lock = new WrappedStampedLock(delegate);
 
@@ -207,7 +238,8 @@ public class WrappedStampedLockTest {
         final StampedLock delegate = getDelegate(ANY_STAMP,
                                                  ANY_STAMP,
                                                  ANY_IS_VALID_STAMP,
-                                                 stamp);
+                                                 stamp,
+                                                 ANY_STAMP);
 
         final WrappedStampedLock lock = new WrappedStampedLock(delegate);
 
@@ -317,4 +349,151 @@ public class WrappedStampedLockTest {
         verify(wrappedLockFromLockFunction).apply(sourceLock);
     }
 
+    @NotNull
+    private Supplier<String> getWriteIfOperation(@NotNull final String value) {
+        assert value != null;
+
+        return MockUtils.mockSupplierSingleAnswer(value);
+    }
+
+    private void testWriteIfTestFails(@NotNull final WrappedStampedLock.TestFailedLockContext testFailedLockContext) {
+        assert testFailedLockContext != null;
+
+        final StampedLock delegate = getDelegate(ANY_STAMP,
+                                                 ANY_STAMP,
+                                                 ANY_IS_VALID_STAMP,
+                                                 ANY_STAMP,
+                                                 ANY_STAMP);
+
+        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+
+        final String failedText = "failed";
+        final Supplier<String> testPassedOperation = getWriteIfOperation("passed");
+        final Supplier<String> testFailedOperation = getWriteIfOperation(failedText);
+
+        when(testFailedOperation.get())
+                .thenAnswer(invocation -> {
+                    final VerificationMode verificationMode;
+
+                    if(testFailedLockContext == WrappedStampedLock.TestFailedLockContext.NO_LOCK) {
+                        verificationMode = times(1);
+                    }
+                    else if(testFailedLockContext == WrappedStampedLock.TestFailedLockContext.IN_PESSIMISTIC_READ_LOCK) {
+                        verificationMode = never();
+                    }
+                    else {
+                        throw new IllegalStateException("unknown context - " + testFailedLockContext);
+                    }
+
+                    verify(delegate, verificationMode).unlock(anyLong());
+
+                    return failedText;
+                });
+
+        final BooleanSupplier test = MockUtils.mockBooleanSupplierSingleAnswer(false);
+        when(test.getAsBoolean())
+                .thenAnswer(invocation -> {
+                    verify(delegate).readLock();
+                    verify(delegate, never()).unlock(anyLong());
+
+                    return false;
+                });
+
+        assertThat(lock.writeIf(test,
+                                testPassedOperation,
+                                testFailedOperation,
+                                testFailedLockContext))
+                .isEqualTo(failedText);
+
+        verify(testPassedOperation, never()).get();
+        verify(testFailedOperation).get();
+
+        verify(delegate).unlock(anyLong());
+        verify(delegate, never()).tryConvertToWriteLock(anyLong());
+
+    }
+
+    public void writeIfTestFailedRunsOperationInLock() {
+
+        testWriteIfTestFails(WrappedStampedLock.TestFailedLockContext.IN_PESSIMISTIC_READ_LOCK);
+    }
+
+    public void writeIfTestFailedRunsOperationOutsideLock() {
+        testWriteIfTestFails(WrappedStampedLock.TestFailedLockContext.NO_LOCK);
+    }
+
+    public void writeIfTestPassedHandlesConversionSuccessful() {
+        final long readLockStamp = 123L;
+        final long convertStamp = 345L; // non-0 means that the conversion passed
+
+        final StampedLock delegate = getDelegate(readLockStamp,
+                                                 ANY_STAMP,
+                                                 ANY_IS_VALID_STAMP,
+                                                 ANY_STAMP,
+                                                 convertStamp);
+
+        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+
+        final String passedText = "passed";
+        final Supplier<String> testPassedOperation = getWriteIfOperation(passedText);
+        final Supplier<String> testFailedOperation = getWriteIfOperation("failed");
+
+        assertThat(lock.writeIf(() -> true,
+                                testPassedOperation,
+                                testFailedOperation,
+                                WrappedStampedLock.TestFailedLockContext.NO_LOCK))
+                .isEqualTo(passedText);
+
+        verify(testPassedOperation).get();
+        verify(testFailedOperation, never()).get();
+
+        verify(delegate).readLock();
+        verify(delegate, never()).unlockRead(anyLong());
+
+        verify(delegate).tryConvertToWriteLock(readLockStamp);
+        verify(delegate).unlock(convertStamp);
+
+        verify(delegate, never()).writeLock();
+
+    }
+
+    public void writeIfTestPassedHandlesConversionFailure() {
+        final long readLockStamp = 123L;
+        final long writeStamp = 456L;
+        final long firstConvertStamp = 0L;       // 0 means that the conversion failed
+        final long secondConvertStamp = 789L;    // non-0 means that the conversion passed
+
+
+        final StampedLock delegate = getDelegate(readLockStamp,
+                                                 ANY_STAMP,
+                                                 ANY_IS_VALID_STAMP,
+                                                 writeStamp,
+                                                 firstConvertStamp,
+                                                 secondConvertStamp);
+
+        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+
+        final String passedText = "passed";
+        final Supplier<String> testPassedOperation = getWriteIfOperation(passedText);
+        final Supplier<String> testFailedOperation = getWriteIfOperation("failed");
+
+        assertThat(lock.writeIf(() -> true,
+                                testPassedOperation,
+                                testFailedOperation,
+                                WrappedStampedLock.TestFailedLockContext.NO_LOCK))
+                .isEqualTo(passedText);
+
+        verify(testPassedOperation).get();
+        verify(testFailedOperation, never()).get();
+
+        verify(delegate).readLock();
+        verify(delegate).unlockRead(readLockStamp);
+
+        verify(delegate).tryConvertToWriteLock(readLockStamp);
+        verify(delegate, never()).unlock(writeStamp);
+
+        verify(delegate, never()).unlock(firstConvertStamp);
+        verify(delegate).unlock(secondConvertStamp);
+
+    }
 }
