@@ -40,10 +40,12 @@ public class WrappedLock {
     }
 
     @Nullable
-    public <T> T inLock(@NotNull final Supplier<T> operation) {
+    private <T> T inLock(@NotNull final Runnable aquireLockRunnable,
+                         @NotNull final Supplier<T> operation) {
+        assert aquireLockRunnable != null;
         assert operation != null;
 
-        delegate.lock();
+        aquireLockRunnable.run();
         try {
             return operation.get();
         }
@@ -53,21 +55,26 @@ public class WrappedLock {
     }
 
     @Nullable
-    public <T> T inLock(@NotNull final Duration aquireTimeout,
-                        @NotNull final Supplier<T> operation) throws AquireTimeoutException {
-        assert aquireTimeout != null;
+    public <T> T inLock(@NotNull final Supplier<T> operation) {
         assert operation != null;
 
-        if(!MoreUninterruptibles.tryLockUninterruptibly(delegate,
-                                                        aquireTimeout)) {
-            throw new AquireTimeoutException();
-        }
-        try {
-            return operation.get();
-        }
-        finally {
-            delegate.unlock();
-        }
+        return inLock(delegate::lock,
+                      operation);
+    }
+
+    @Nullable
+    public <T> T inLock(@NotNull final Supplier<T> operation,
+                        @NotNull final Duration aquireTimeout) throws AquireTimeoutException {
+        assert operation != null;
+        assert aquireTimeout != null;
+
+        return inLock(() -> {
+            if(!MoreUninterruptibles.tryLockUninterruptibly(delegate,
+                                                            aquireTimeout)) {
+                throw new AquireTimeoutException();
+            }
+        },
+                      operation);
     }
 
     public void inLock(@NotNull final Runnable operation) {
@@ -80,16 +87,16 @@ public class WrappedLock {
         });
     }
 
-    public void inLock(@NotNull final Duration aquireTimeout,
-                       @NotNull final Runnable operation) throws AquireTimeoutException {
-        assert aquireTimeout != null;
+    public void inLock(@NotNull final Runnable operation,
+                       @NotNull final Duration aquireTimeout) throws AquireTimeoutException {
         assert operation != null;
+        assert aquireTimeout != null;
 
-        inLock(aquireTimeout,
-               () -> {
-                   operation.run();
+        inLock(() -> {
+            operation.run();
 
-                   return null;
-               });
+            return null;
+        },
+               aquireTimeout);
     }
 }

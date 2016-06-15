@@ -18,7 +18,6 @@ package org.arbee.arbeeutils.concurrent;
 
 import com.google.common.annotations.VisibleForTesting;
 import net.jcip.annotations.ThreadSafe;
-import org.arbee.arbeeutils.function.ToBooleanFunction;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
