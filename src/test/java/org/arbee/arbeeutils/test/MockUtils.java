@@ -16,9 +16,11 @@
 
 package org.arbee.arbeeutils.test;
 
+import com.google.common.collect.ImmutableList;
 import net.jcip.annotations.ThreadSafe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.mockito.AdditionalAnswers;
 
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -56,6 +58,19 @@ public enum MockUtils {
 
         when(supplier.get())
                 .thenReturn(value);
+
+        return supplier;
+    }
+
+    @SuppressWarnings("unchecked")
+    @NotNull
+    public static <V> Supplier<V> mockSupplierMultipleAnswers(final @NotNull ImmutableList<V> values) {
+        assert values != null;
+
+        final Supplier<V> supplier = mock(Supplier.class);
+
+        when(supplier.get())
+                .thenAnswer(AdditionalAnswers.returnsElementsOf(values));
 
         return supplier;
     }

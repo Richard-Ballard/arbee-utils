@@ -101,7 +101,7 @@ public class WrappedLockTest {
         final Supplier<String> supplier = getSupplier();
         assertThatThrownBy(() -> new WrappedLock(delegate).inLock(supplier,
                                                                   timeout))
-                .isInstanceOf(AquireTimeoutException.class);
+                .isInstanceOf(AcquireTimeoutException.class);
 
         verify(supplier, never()).get();
         verify(delegate, never()).unlock();

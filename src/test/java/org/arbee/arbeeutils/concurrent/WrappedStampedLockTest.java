@@ -18,13 +18,16 @@ package org.arbee.arbeeutils.concurrent;
 
 import com.google.common.collect.ImmutableList;
 import org.arbee.arbeeutils.test.MockUtils;
+import org.arbee.arbeeutils.time.TimeTick;
+import org.arbee.arbeeutils.time.TimeTicks;
 import org.jetbrains.annotations.NotNull;
-import org.mockito.AdditionalAnswers;
 import org.mockito.verification.VerificationMode;
 import org.testng.annotations.Test;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.StampedLock;
@@ -43,12 +46,21 @@ public class WrappedStampedLockTest {
     private static final long ANY_STAMP = 999L;
     private static final boolean ANY_IS_VALID_STAMP = false;
 
+    private static final ImmutableList<TimeTick> ANY_TIME_TICKS = ImmutableList.of();
+
+    @NotNull
+    private Supplier<TimeTick> getCurrentTimeTickSupplier(@NotNull final ImmutableList<TimeTick> timeTicks) {
+        assert timeTicks != null;
+
+        return MockUtils.mockSupplierMultipleAnswers(timeTicks);
+    }
+
     @NotNull
     private StampedLock getDelegate(final long readLockStamp,
                                     final long optimisticReadStamp,
                                     final boolean isValidStamp,
                                     final long writeStamp,
-                                    @NotNull final long... tryConvertToWriteLockStamp) {
+                                    @NotNull final long... tryConvertToWriteLockStamp) throws InterruptedException {
         assert tryConvertToWriteLockStamp != null;
 
         assert tryConvertToWriteLockStamp.length > 0;
@@ -58,6 +70,10 @@ public class WrappedStampedLockTest {
         when(lock.readLock())
                 .thenReturn(readLockStamp);
 
+        when(lock.tryReadLock(anyLong(),
+                              any(TimeUnit.class)))
+                .thenReturn(readLockStamp);
+
         when(lock.tryOptimisticRead())
                 .thenReturn(optimisticReadStamp);
 
@@ -65,6 +81,10 @@ public class WrappedStampedLockTest {
                 .thenReturn(isValidStamp);
 
         when(lock.writeLock())
+                .thenReturn(writeStamp);
+
+        when(lock.tryWriteLock(anyLong(),
+                               any(TimeUnit.class)))
                 .thenReturn(writeStamp);
 
 
@@ -116,7 +136,17 @@ public class WrappedStampedLockTest {
         return mock(Lock.class);
     }
 
-    public void pessimisticReadUnlocksOnSuccessful() {
+    @NotNull
+    private WrappedStampedLock createSimpleWrappedStampedLock(@NotNull final StampedLock delegate) {
+        assert delegate != null;
+
+        return new WrappedStampedLock(delegate,
+                                      WrappedReadWriteLock::new,
+                                      WrappedLock::new,
+                                      getCurrentTimeTickSupplier(ANY_TIME_TICKS));
+    }
+
+    public void pessimisticReadUnlocksOnSuccessful() throws InterruptedException {
         final long stamp = 123L;
         final StampedLock delegate = getDelegate(stamp,
                                                  ANY_STAMP,
@@ -124,7 +154,7 @@ public class WrappedStampedLockTest {
                                                  ANY_STAMP,
                                                  ANY_STAMP);
 
-        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
 
         final String result = "result";
 
@@ -142,7 +172,7 @@ public class WrappedStampedLockTest {
 
     }
 
-    public void pessimisticReadUnlocksOnException() {
+    public void pessimisticReadUnlocksOnException() throws InterruptedException {
         final long stamp = 123L;
         final StampedLock delegate = getDelegate(stamp,
                                                  ANY_STAMP,
@@ -150,7 +180,7 @@ public class WrappedStampedLockTest {
                                                  ANY_STAMP,
                                                  ANY_STAMP);
 
-        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
 
         final RuntimeException exc = new RuntimeException("test");
 
@@ -168,7 +198,27 @@ public class WrappedStampedLockTest {
 
     }
 
-    public void optimisticReadFallsBackToPessimistic() {
+    public void pessimisticReadThrowsOnTimeout() throws InterruptedException {
+        final long stamp = 0L;      // 0 means it couldn't acquire
+        final StampedLock delegate = getDelegate(stamp,
+                                                 ANY_STAMP,
+                                                 ANY_IS_VALID_STAMP,
+                                                 ANY_STAMP,
+                                                 ANY_STAMP);
+
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
+
+        final Duration timeout = Duration.ofSeconds(123L);
+        assertThatThrownBy(() -> lock.pessimisticRead(() -> "not important",
+                                                      timeout))
+                .isInstanceOf(AcquireTimeoutException.class);
+
+        verify(delegate).tryReadLock(timeout.toNanos(),
+                                     TimeUnit.NANOSECONDS);
+    }
+
+
+    public void optimisticReadFallsBackToPessimistic() throws InterruptedException {
         final long readLockStamp = 123L;
         final long optimisticReadStamp = 234L;
         final StampedLock delegate = getDelegate(readLockStamp,
@@ -177,7 +227,7 @@ public class WrappedStampedLockTest {
                                                  ANY_STAMP,
                                                  ANY_STAMP);
 
-        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
 
         final String operationResult = "result";
 
@@ -188,7 +238,7 @@ public class WrappedStampedLockTest {
         verify(delegate).readLock();
     }
 
-    public void optimisticReadReturnsIfValid() {
+    public void optimisticReadReturnsIfValid() throws InterruptedException {
         final long optimisticReadStamp = 234L;
         final StampedLock delegate = getDelegate(ANY_STAMP,
                                                  optimisticReadStamp,
@@ -196,7 +246,7 @@ public class WrappedStampedLockTest {
                                                  ANY_STAMP,
                                                  ANY_STAMP);
 
-        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
 
         final String operationResult = "result";
 
@@ -207,7 +257,62 @@ public class WrappedStampedLockTest {
         verify(delegate, never()).readLock();
     }
 
-    public void writeUnlocksOnSuccess() {
+    public void optimisticReadOkIfWithinTimeout() throws InterruptedException {
+        final long readStamp = 234L;
+        final StampedLock delegate = getDelegate(readStamp,
+                                                 0L,        // fail the tryOptimistic read so it fails over to a pessimistic read
+                                                 false,
+                                                 ANY_STAMP,
+                                                 ANY_STAMP);
+
+        final TimeTick startTimeTick = TimeTicks.explicitTimeTick(1L);
+        final TimeTick endTimeTick = startTimeTick.plus(Duration.ofSeconds(12L));
+        final WrappedStampedLock lock = new WrappedStampedLock(delegate,
+                                                               WrappedReadWriteLock::new,
+                                                               WrappedLock::new,
+                                                               getCurrentTimeTickSupplier(ImmutableList.of(startTimeTick,
+                                                                                                           endTimeTick)));
+
+        final String operationResult = "result";
+
+        final Duration timeout = Duration.ofSeconds(20L);
+        assertThat(lock.optimisticRead(() -> operationResult,
+                                       timeout))
+                .isEqualTo(operationResult);
+
+        // make sure we actually hit the right code
+        verify(delegate).tryReadLock(timeout.minus(endTimeTick.durationSince(startTimeTick)).toNanos(),
+                                     TimeUnit.NANOSECONDS);
+    }
+
+    public void optimisticReadThrowsOnTimeout() throws InterruptedException {
+        final StampedLock delegate = getDelegate(0L,        // 0 for a tryReadLock indicates a timeout
+                                                 0L,        // fail the tryOptimistic read so it fails over to a pessimistic read
+                                                 false,
+                                                 ANY_STAMP,
+                                                 ANY_STAMP);
+
+        final TimeTick startTimeTick = TimeTicks.explicitTimeTick(1L);
+        final TimeTick endTimeTick = startTimeTick.plus(Duration.ofSeconds(12L));
+        final WrappedStampedLock lock = new WrappedStampedLock(delegate,
+                                                               WrappedReadWriteLock::new,
+                                                               WrappedLock::new,
+                                                               getCurrentTimeTickSupplier(ImmutableList.of(startTimeTick,
+                                                                                                           endTimeTick)));
+
+
+        final Duration timeout = Duration.ofSeconds(3L);
+        assertThatThrownBy(() -> lock.optimisticRead(() -> "not important",
+                                                     timeout))
+                .isInstanceOf(AcquireTimeoutException.class);
+
+        // make sure we actually hit the right code
+        verify(delegate).tryReadLock(timeout.minus(endTimeTick.durationSince(startTimeTick)).toNanos(),
+                                     TimeUnit.NANOSECONDS);
+    }
+
+
+    public void writeUnlocksOnSuccess() throws InterruptedException {
         final long writeStamp = 123L;
 
         final StampedLock delegate = getDelegate(ANY_STAMP,
@@ -216,7 +321,7 @@ public class WrappedStampedLockTest {
                                                  writeStamp,
                                                  ANY_STAMP);
 
-        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
 
         final String operationResult = "result";
 
@@ -233,7 +338,7 @@ public class WrappedStampedLockTest {
         verify(delegate).unlockWrite(writeStamp);
     }
 
-    public void writeUnlocksOnException() {
+    public void writeUnlocksOnException() throws InterruptedException {
         final long stamp = 123L;
         final StampedLock delegate = getDelegate(ANY_STAMP,
                                                  ANY_STAMP,
@@ -241,7 +346,7 @@ public class WrappedStampedLockTest {
                                                  stamp,
                                                  ANY_STAMP);
 
-        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
 
         final RuntimeException exc = new RuntimeException("test");
 
@@ -256,6 +361,26 @@ public class WrappedStampedLockTest {
                 .isEqualTo(exc);
 
         verify(delegate).unlockWrite(stamp);
+    }
+
+
+    public void writeThrowsOnTimeout() throws InterruptedException {
+        final long stamp = 0L;      // 0 means it couldn't acquire
+        final StampedLock delegate = getDelegate(ANY_STAMP,
+                                                 ANY_STAMP,
+                                                 ANY_IS_VALID_STAMP,
+                                                 stamp,
+                                                 ANY_STAMP);
+
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
+
+        final Duration timeout = Duration.ofSeconds(123L);
+        assertThatThrownBy(() -> lock.write(() -> "not important",
+                                            timeout))
+                .isInstanceOf(AcquireTimeoutException.class);
+
+        verify(delegate).tryWriteLock(timeout.toNanos(),
+                                      TimeUnit.NANOSECONDS);
     }
 
     @NotNull
@@ -297,7 +422,8 @@ public class WrappedStampedLockTest {
                                                                              getLock(),
                                                                              getLock()),
                                                                wrappedReadWriteLockFromReadWriteLockFunction,
-                                                               getWrappedLockFromLockFunction(getWrappedLock()));
+                                                               getWrappedLockFromLockFunction(getWrappedLock()),
+                                                               getCurrentTimeTickSupplier(ANY_TIME_TICKS));
 
         assertThat(lock.asReadWriteLock())
                 .isEqualTo(wrappedReadWriteLock);
@@ -318,7 +444,8 @@ public class WrappedStampedLockTest {
 
         final WrappedStampedLock lock = new WrappedStampedLock(delegate,
                                                                getWrappedReadWriteLockFromReadWriteLockFunction(getWrappedReadWriteLock()),
-                                                               wrappedLockFromLockFunction);
+                                                               wrappedLockFromLockFunction,
+                                                               getCurrentTimeTickSupplier(ANY_TIME_TICKS));
 
         assertThat(lock.asReadLock())
                 .isEqualTo(wrappedLock);
@@ -340,7 +467,8 @@ public class WrappedStampedLockTest {
 
         final WrappedStampedLock lock = new WrappedStampedLock(delegate,
                                                                getWrappedReadWriteLockFromReadWriteLockFunction(getWrappedReadWriteLock()),
-                                                               wrappedLockFromLockFunction);
+                                                               wrappedLockFromLockFunction,
+                                                               getCurrentTimeTickSupplier(ANY_TIME_TICKS));
 
         assertThat(lock.asWriteLock())
                 .isEqualTo(wrappedLock);
@@ -356,7 +484,8 @@ public class WrappedStampedLockTest {
         return MockUtils.mockSupplierSingleAnswer(value);
     }
 
-    private void testWriteIfTestFails(@NotNull final WrappedStampedLock.TestFailedLockContext testFailedLockContext) {
+    private void testWriteIfTestFails(@NotNull final WrappedStampedLock.TestFailedLockContext testFailedLockContext)
+            throws InterruptedException {
         assert testFailedLockContext != null;
 
         final StampedLock delegate = getDelegate(ANY_STAMP,
@@ -365,7 +494,7 @@ public class WrappedStampedLockTest {
                                                  ANY_STAMP,
                                                  ANY_STAMP);
 
-        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
 
         final String failedText = "failed";
         final Supplier<String> testPassedOperation = getWriteIfOperation("passed");
@@ -413,16 +542,16 @@ public class WrappedStampedLockTest {
 
     }
 
-    public void writeIfTestFailedRunsOperationInLock() {
+    public void writeIfTestFailedRunsOperationInLock() throws InterruptedException {
 
         testWriteIfTestFails(WrappedStampedLock.TestFailedLockContext.IN_PESSIMISTIC_READ_LOCK);
     }
 
-    public void writeIfTestFailedRunsOperationOutsideLock() {
+    public void writeIfTestFailedRunsOperationOutsideLock() throws InterruptedException {
         testWriteIfTestFails(WrappedStampedLock.TestFailedLockContext.NO_LOCK);
     }
 
-    public void writeIfTestPassedHandlesConversionSuccessful() {
+    public void writeIfTestPassedHandlesConversionSuccessful() throws InterruptedException {
         final long readLockStamp = 123L;
         final long convertStamp = 345L; // non-0 means that the conversion passed
 
@@ -432,7 +561,7 @@ public class WrappedStampedLockTest {
                                                  ANY_STAMP,
                                                  convertStamp);
 
-        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
 
         final String passedText = "passed";
         final Supplier<String> testPassedOperation = getWriteIfOperation(passedText);
@@ -457,7 +586,7 @@ public class WrappedStampedLockTest {
 
     }
 
-    public void writeIfTestPassedHandlesConversionFailure() {
+    public void writeIfTestPassedHandlesConversionFailure() throws InterruptedException {
         final long readLockStamp = 123L;
         final long writeStamp = 456L;
         final long firstConvertStamp = 0L;       // 0 means that the conversion failed
@@ -471,7 +600,7 @@ public class WrappedStampedLockTest {
                                                  firstConvertStamp,
                                                  secondConvertStamp);
 
-        final WrappedStampedLock lock = new WrappedStampedLock(delegate);
+        final WrappedStampedLock lock = createSimpleWrappedStampedLock(delegate);
 
         final String passedText = "passed";
         final Supplier<String> testPassedOperation = getWriteIfOperation(passedText);

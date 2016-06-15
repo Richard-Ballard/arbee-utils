@@ -18,7 +18,6 @@ package org.arbee.arbeeutils.concurrent;
 
 import net.jcip.annotations.ThreadSafe;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.concurrent.locks.Lock;
@@ -39,13 +38,12 @@ public class WrappedLock {
         this.delegate = delegate;
     }
 
-    @Nullable
-    private <T> T inLock(@NotNull final Runnable aquireLockRunnable,
+    private <T> T inLock(@NotNull final Runnable acquireLockRunnable,
                          @NotNull final Supplier<T> operation) {
-        assert aquireLockRunnable != null;
+        assert acquireLockRunnable != null;
         assert operation != null;
 
-        aquireLockRunnable.run();
+        acquireLockRunnable.run();
         try {
             return operation.get();
         }
@@ -54,7 +52,6 @@ public class WrappedLock {
         }
     }
 
-    @Nullable
     public <T> T inLock(@NotNull final Supplier<T> operation) {
         assert operation != null;
 
@@ -62,16 +59,15 @@ public class WrappedLock {
                       operation);
     }
 
-    @Nullable
     public <T> T inLock(@NotNull final Supplier<T> operation,
-                        @NotNull final Duration aquireTimeout) throws AquireTimeoutException {
+                        @NotNull final Duration acquireTimeout) throws AcquireTimeoutException {
         assert operation != null;
-        assert aquireTimeout != null;
+        assert acquireTimeout != null;
 
         return inLock(() -> {
             if(!MoreUninterruptibles.tryLockUninterruptibly(delegate,
-                                                            aquireTimeout)) {
-                throw new AquireTimeoutException();
+                                                            acquireTimeout)) {
+                throw new AcquireTimeoutException();
             }
         },
                       operation);
@@ -88,15 +84,15 @@ public class WrappedLock {
     }
 
     public void inLock(@NotNull final Runnable operation,
-                       @NotNull final Duration aquireTimeout) throws AquireTimeoutException {
+                       @NotNull final Duration acquireTimeout) throws AcquireTimeoutException {
         assert operation != null;
-        assert aquireTimeout != null;
+        assert acquireTimeout != null;
 
         inLock(() -> {
             operation.run();
 
             return null;
         },
-               aquireTimeout);
+               acquireTimeout);
     }
 }

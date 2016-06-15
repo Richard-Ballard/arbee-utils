@@ -16,23 +16,25 @@
 
 package org.arbee.arbeeutils.concurrent;
 
-import com.google.common.annotations.VisibleForTesting;
 import net.jcip.annotations.ThreadSafe;
+import org.arbee.arbeeutils.time.TimeTick;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 /**
  * This class is a wrapper around an instance of {@link StampedLock} that allows the caller to use the delegate
  * in a more functional manner.
  * <p/>
- * As with {@link StampedLock} this lock is non-reentrant, i.e. if a thread holds a lock and then attempts to aquire
+ * As with {@link StampedLock} this lock is non-reentrant, i.e. if a thread holds a lock and then attempts to acquire
  * another lock then it will deadlock.
  * <p/>
  * For read locks it has the concept of {@code pessimistic} and {@code optimistic} read locks.
@@ -67,29 +69,22 @@ public class WrappedStampedLock {
     @NotNull
     private final Function<Lock, WrappedLock> wrappedLockFromLockFunction;
 
-    @VisibleForTesting
-    WrappedStampedLock(@NotNull final StampedLock delegate,
-                       @NotNull final Function<ReadWriteLock, WrappedReadWriteLock> wrappedReadWriteLockFromReadWriteLockFunction,
-                       @NotNull final Function<Lock, WrappedLock> wrappedLockFromLockFunction) {
+    @NotNull
+    private final Supplier<TimeTick> currentTimeTickSupplier;
+
+    protected WrappedStampedLock(@NotNull final StampedLock delegate,
+                                 @NotNull final Function<ReadWriteLock, WrappedReadWriteLock> wrappedReadWriteLockFromReadWriteLockFunction,
+                                 @NotNull final Function<Lock, WrappedLock> wrappedLockFromLockFunction,
+                                 @NotNull final Supplier<TimeTick> currentTimeTickSupplier) {
         assert delegate != null;
         assert wrappedReadWriteLockFromReadWriteLockFunction != null;
         assert wrappedLockFromLockFunction != null;
+        assert currentTimeTickSupplier != null;
 
         this.delegate = delegate;
         this.wrappedReadWriteLockFromReadWriteLockFunction = wrappedReadWriteLockFromReadWriteLockFunction;
         this.wrappedLockFromLockFunction = wrappedLockFromLockFunction;
-    }
-
-    public WrappedStampedLock(@NotNull final StampedLock delegate) {
-        this(delegate,
-             WrappedReadWriteLock::new,
-             WrappedLock::new);
-
-        assert delegate != null;
-    }
-
-    public WrappedStampedLock() {
-        this(new StampedLock());
+        this.currentTimeTickSupplier = currentTimeTickSupplier;
     }
 
     @NotNull
@@ -107,14 +102,13 @@ public class WrappedStampedLock {
         return Objects.requireNonNull(wrappedLockFromLockFunction.apply(delegate.asWriteLock()));
     }
 
-    /**
-     * Runs the given {@code operation} in a pessimistic read lock.  While the operation is running the only other
-     * locks that *may* be running are pessimistic and optimistic read locks.
-     */
-    public <T> T pessimisticRead(@NotNull final Supplier<T> operation) {
+    private <T> T pessimisticRead(@NotNull final LongSupplier readLockStampSupplier,
+                                  @NotNull final Supplier<T> operation) {
+        assert readLockStampSupplier != null;
         assert operation != null;
 
-        final long stamp = delegate.readLock();
+        final long stamp = readLockStampSupplier.getAsLong();
+        assert stamp != 0L;
         try {
             return operation.get();
         }
@@ -124,22 +118,42 @@ public class WrappedStampedLock {
     }
 
     /**
-     * See the class doc ({@link WrappedStampedLock}) for an overview of optimistic locks.
-     * <p/>
-     * The operation may be run at the same time as any other operation (including a write lock).
-     * Because of this it should only read data, and not make decisions based on the data it reads.  Consider the example,
-     * if it were to read a long value and if the value is < 10 throw a BadValueException.
-     * The thread that is running the optimistic lock operation reads the first 32 bits of the long.  Another thread
-     * writes a new value to the long (in a write lock).  The read thread reads the remaining 32 bits and so reads
-     * a invalid number and throws BadValueException.  If it were to not make the decision to throw if the value < 10
-     * then after reading the code would see that a write lock had occurred whilst reading and so re-attempt the optimistic
-     * read (thus returning the correct number).
-     * <p/>
-     * Another example - if the code in the optimistic read iterates through a list then another thread may update
-     * the list and so the reader gets a {@link java.util.ConcurrentModificationException}.  In this case a
-     * {@link #pessimisticRead(Supplier)} should be used.
+     * Runs the given {@code operation} in a pessimistic read lock.  While the operation is running the only other
+     * locks that *may* be running are pessimistic and optimistic read locks.
      */
-    public <T> T optimisticRead(@NotNull final Supplier<T> operation) {
+    public <T> T pessimisticRead(@NotNull final Supplier<T> operation) {
+        assert operation != null;
+
+        return pessimisticRead(delegate::readLock,
+                               operation);
+    }
+
+    /**
+     * Runs the given {@code operation} in a pessimistic read lock.  While the operation is running the only other
+     * locks that *may* be running are pessimistic and optimistic read locks.
+     */
+    public <T> T pessimisticRead(@NotNull final Supplier<T> operation,
+                                 @NotNull final Duration acquireTimeout) throws AcquireTimeoutException {
+        assert operation != null;
+        assert acquireTimeout != null;
+
+        return pessimisticRead(() -> {
+            final long stamp = MoreUninterruptibles.tryReadLockUninterruptibly(delegate,
+                                                                               acquireTimeout);
+
+            if(stamp == 0L) {
+                throw new AcquireTimeoutException();
+            }
+
+            return stamp;
+
+        },
+                               operation);
+    }
+
+    private <T> T optimisticRead(@NotNull final Supplier<T> pessimisticReadAppliedToOperation,
+                                 @NotNull final Supplier<T> operation) {
+        assert pessimisticReadAppliedToOperation != null;
         assert operation != null;
 
         T result = null;    // setting this to null isn't needed *except* to keep the compiler happy - RMB 2016/06/05
@@ -156,10 +170,83 @@ public class WrappedStampedLock {
         }
 
         if(!validReadPerformed) {
-            result = pessimisticRead(operation);
+            result = pessimisticReadAppliedToOperation.get();
         }
 
         return result;
+    }
+
+    /**
+     * See the class doc ({@link WrappedStampedLock}) for an overview of optimistic locks.
+     * <p/>
+     * The operation may be run at the same time as any other operation (including a write lock).
+     * Because of this it should only read data, and not make decisions based on the data it reads.  Consider the example,
+     * if it were to read a long value and if the value is < 10 throw a BadValueException.
+     * The thread that is running the optimistic lock operation reads the first 32 bits of the long.  Another thread
+     * writes a new value to the long (in a write lock).  The read thread reads the remaining 32 bits and so reads
+     * a invalid number and throws BadValueException.  If it were to not make the decision to throw if the value < 10
+     * then after reading the code would see that a write lock had occurred whilst reading and so re-attempt the optimistic
+     * read (thus returning the correct number).
+     * <p/>
+     * Another example - if the code in the optimistic read iterates through a list then another thread may update
+     * the list and so the reader gets a {@link java.util.ConcurrentModificationException}.  In this case a
+     * pessimistic read should be used.
+     */
+    public <T> T optimisticRead(@NotNull final Supplier<T> operation) {
+        assert operation != null;
+
+        return optimisticRead(() -> pessimisticRead(operation),
+                              operation);
+    }
+
+
+    /**
+     * See the class doc ({@link WrappedStampedLock}) for an overview of optimistic locks.
+     * <p/>
+     * The operation may be run at the same time as any other operation (including a write lock).
+     * Because of this it should only read data, and not make decisions based on the data it reads.  Consider the example,
+     * if it were to read a long value and if the value is < 10 throw a BadValueException.
+     * The thread that is running the optimistic lock operation reads the first 32 bits of the long.  Another thread
+     * writes a new value to the long (in a write lock).  The read thread reads the remaining 32 bits and so reads
+     * a invalid number and throws BadValueException.  If it were to not make the decision to throw if the value < 10
+     * then after reading the code would see that a write lock had occurred whilst reading and so re-attempt the optimistic
+     * read (thus returning the correct number).
+     * <p/>
+     * Another example - if the code in the optimistic read iterates through a list then another thread may update
+     * the list and so the reader gets a {@link java.util.ConcurrentModificationException}.  In this case a
+     * pessimistic read should be used.
+     */
+    public <T> T optimisticRead(@NotNull final Supplier<T> operation,
+                                @NotNull final Duration acquireTimeout) throws AcquireTimeoutException {
+        assert operation != null;
+        assert acquireTimeout != null;
+
+        final TimeTick startTimeTick = currentTimeTickSupplier.get();
+
+        return optimisticRead(() -> {
+            // figure out how much time has passed since we started and use what is left within the original duration
+            // as the timeout for the pessimistic lock call.
+            final Duration durationSinceStart = currentTimeTickSupplier.get().durationSince(startTimeTick);
+
+            return pessimisticRead(operation,
+                                   acquireTimeout.minus(durationSinceStart));
+        },
+                              operation);
+    }
+
+    private <T> T write(@NotNull final LongSupplier writeLockStampSupplier,
+                        @NotNull final Supplier<T> operation) {
+        assert writeLockStampSupplier != null;
+        assert operation != null;
+
+        final long stamp = writeLockStampSupplier.getAsLong();
+        assert stamp != 0L;
+        try {
+            return operation.get();
+        }
+        finally {
+            delegate.unlockWrite(stamp);
+        }
     }
 
     /**
@@ -169,13 +256,30 @@ public class WrappedStampedLock {
     public <T> T write(@NotNull final Supplier<T> operation) {
         assert operation != null;
 
-        final long stamp = delegate.writeLock();
-        try {
-            return operation.get();
-        }
-        finally {
-            delegate.unlockWrite(stamp);
-        }
+        return write(delegate::writeLock,
+                     operation);
+    }
+
+    /**
+     * Performs an operation within a write lock.  When this operation is running the only other locks that *may* be
+     * running are optimistic reads.
+     */
+    public <T> T write(@NotNull final Supplier<T> operation,
+                       @NotNull final Duration acquireTimeout) throws AcquireTimeoutException {
+        assert operation != null;
+        assert acquireTimeout != null;
+
+        return write(() -> {
+            final long stamp = MoreUninterruptibles.tryWriteLockUninterruptibly(delegate,
+                                                                                acquireTimeout);
+
+            if(stamp == 0L) {   // 0 here means the lock couldn't be acquired
+                throw new AcquireTimeoutException();
+            }
+
+            return stamp;
+        },
+                     operation);
     }
 
     /**
@@ -192,7 +296,23 @@ public class WrappedStampedLock {
         });
     }
 
-    public enum TestFailedLockContext {
+    /**
+     * See {@link #write(Supplier, Duration)}
+     */
+    public void write(@NotNull final Runnable operation,
+                      @NotNull final Duration acquireTimeout) throws AcquireTimeoutException {
+        assert operation != null;
+        assert acquireTimeout != null;
+
+        write(() -> {
+            operation.run();
+
+            return null;
+        },
+              acquireTimeout);
+    }
+
+        public enum TestFailedLockContext {
         /**
          * The operation will be run from within a pessimistic read lock
          */

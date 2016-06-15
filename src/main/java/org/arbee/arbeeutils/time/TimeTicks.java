@@ -36,4 +36,12 @@ public enum TimeTicks {
     public static Supplier<TimeTick> systemCurrentTimeTickSupplier() {
         return SYSTEM_CURRENT_TIME_TICK_SUPPLIER;
     }
+
+    /**
+     * This method is intended for tests where a known value must be used to make things deterministic
+     */
+    @NotNull
+    public static TimeTick explicitTimeTick(final long nanoTicks) {
+        return new TimeTick(nanoTicks);
+    }
 }

@@ -21,9 +21,10 @@ import org.jetbrains.annotations.NotNull;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.StampedLock;
 
 /**
- * Based on {@link com.google.common.util.concurrent.Uninterruptibles} but with more cases handled.
+ * Based on {@link com.google.common.util.concurrent.Uninterruptibles} but with additional cases handled.
  */
 public enum MoreUninterruptibles {
     ;
@@ -47,7 +48,63 @@ public enum MoreUninterruptibles {
                     interrupted = true;
                 }
             }
-        } finally {
+        }
+        finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
+     * Invokes {@link StampedLock#tryReadLock(long, TimeUnit)} uninterruptibly
+     */
+    public static long tryReadLockUninterruptibly(@NotNull final StampedLock lock,
+                                                  @NotNull final Duration timeout) {
+        assert lock != null;
+        assert timeout != null;
+
+        boolean interrupted = false;
+        try {
+            while (true) {
+                try {
+                    return lock.tryReadLock(timeout.toNanos(),
+                                            TimeUnit.NANOSECONDS);
+                }
+                catch(final InterruptedException ignored) {
+                    interrupted = true;
+                }
+            }
+        }
+        finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+
+    /**
+     * Invokes {@link StampedLock#tryWriteLock(long, TimeUnit)} uninterruptibly
+     */
+    public static long tryWriteLockUninterruptibly(@NotNull final StampedLock lock,
+                                                   @NotNull final Duration timeout) {
+        assert lock != null;
+        assert timeout != null;
+
+        boolean interrupted = false;
+        try {
+            while (true) {
+                try {
+                    return lock.tryWriteLock(timeout.toNanos(),
+                                             TimeUnit.NANOSECONDS);
+                }
+                catch(final InterruptedException ignored) {
+                    interrupted = true;
+                }
+            }
+        }
+        finally {
             if (interrupted) {
                 Thread.currentThread().interrupt();
             }
