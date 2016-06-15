@@ -18,6 +18,7 @@ package org.arbee.arbeeutils.concurrent;
 
 import com.google.common.annotations.VisibleForTesting;
 import net.jcip.annotations.ThreadSafe;
+import org.arbee.arbeeutils.function.ToBooleanFunction;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -205,7 +206,6 @@ public class WrappedStampedLock {
     }
 
     // todo - do a timeout version - RMB 2016/6/11
-    // todo - do a void version - RMB 2016/6/11
 
     /**
      *
@@ -254,5 +254,41 @@ public class WrappedStampedLock {
         assert testFailedLockContext == TestFailedLockContext.NO_LOCK : testFailedLockContext;
 
         return onTestFailedOperation.get();
+    }
+
+    public enum TestResult {
+        PASSED,
+        FAILED
+    }
+
+    /**
+     *
+     * @param test this will be run in a pessimistic read lock.  If it passes (returns true) then a write lock will be
+     *             obtained and {@code onTestPassedOperation} will be run and {@link TestResult#PASSED} returned.
+     *             If it fails (returns false) then {@lonk onTestFailedOperation} will be run and {@link TestResult#FAILED}
+     *             returned.
+     * @param onTestPassedOperation This will be run if {@code test} returns true.
+     * @param onTestFailedOperation This will be run if {@code test} returns false.
+     */
+    @NotNull
+    public TestResult writeIf(@NotNull final BooleanSupplier test,
+                              @NotNull final Runnable onTestPassedOperation,
+                              @NotNull final Runnable onTestFailedOperation) {
+        assert test != null;
+        assert onTestPassedOperation != null;
+        assert onTestFailedOperation != null;
+
+        return writeIf(test,
+                       () -> {
+                           onTestPassedOperation.run();
+
+                           return TestResult.PASSED;
+                       },
+                       () -> {
+                           onTestFailedOperation.run();
+
+                           return TestResult.FAILED;
+                       },
+                       TestFailedLockContext.NO_LOCK);
     }
 }
