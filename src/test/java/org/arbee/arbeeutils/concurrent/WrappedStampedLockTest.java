@@ -625,4 +625,80 @@ public class WrappedStampedLockTest {
         verify(delegate).unlock(secondConvertStamp);
 
     }
+
+    public void writeIfOkIfWithinTimeout() throws InterruptedException {
+
+        final long readLockStamp = 123L;
+        final long convertStamp = 345L; // non-0 means that the conversion passed
+
+        final StampedLock delegate = getDelegate(readLockStamp,
+                                                 ANY_STAMP,
+                                                 ANY_IS_VALID_STAMP,
+                                                 ANY_STAMP,
+                                                 convertStamp);
+
+        final TimeTick startTimeTick = TimeTicks.explicitTimeTick(1L);
+        final TimeTick endTimeTick = startTimeTick.plus(Duration.ofSeconds(12L));
+        final WrappedStampedLock lock = new WrappedStampedLock(delegate,
+                                                               WrappedReadWriteLock::new,
+                                                               WrappedLock::new,
+                                                               getCurrentTimeTickSupplier(ImmutableList.of(startTimeTick,
+                                                                                                           endTimeTick)));
+
+        final String passedText = "passed";
+        final Supplier<String> testPassedOperation = getWriteIfOperation(passedText);
+        final Supplier<String> testFailedOperation = getWriteIfOperation("failed");
+
+        final Duration timeout = Duration.ofSeconds(20L);
+
+        assertThat(lock.writeIf(() -> true,
+                                testPassedOperation,
+                                testFailedOperation,
+                                WrappedStampedLock.TestFailedLockContext.NO_LOCK,
+                                timeout))
+                .isEqualTo(passedText);
+
+        verify(testPassedOperation).get();
+
+        // make sure we actually hit the right code
+        verify(delegate).tryReadLock(timeout.minus(endTimeTick.durationSince(startTimeTick)).toNanos(),
+                                     TimeUnit.NANOSECONDS);
+    }
+
+    public void writeIfThrowsIfTimeout() throws InterruptedException {
+
+        final long readLockStamp = 0L;  // 0 means that it couldn't acquire
+
+        final StampedLock delegate = getDelegate(readLockStamp,
+                                                 ANY_STAMP,
+                                                 ANY_IS_VALID_STAMP,
+                                                 ANY_STAMP,
+                                                 ANY_STAMP);
+
+        final TimeTick startTimeTick = TimeTicks.explicitTimeTick(1L);
+        final TimeTick endTimeTick = startTimeTick.plus(Duration.ofSeconds(12L));
+        final WrappedStampedLock lock = new WrappedStampedLock(delegate,
+                                                               WrappedReadWriteLock::new,
+                                                               WrappedLock::new,
+                                                               getCurrentTimeTickSupplier(ImmutableList.of(startTimeTick,
+                                                                                                           endTimeTick)));
+
+        final String passedText = "passed";
+        final Supplier<String> testPassedOperation = getWriteIfOperation(passedText);
+        final Supplier<String> testFailedOperation = getWriteIfOperation("failed");
+
+        final Duration timeout = Duration.ofSeconds(5L);
+
+        assertThatThrownBy(() -> lock.writeIf(() -> true,
+                                              testPassedOperation,
+                                              testFailedOperation,
+                                              WrappedStampedLock.TestFailedLockContext.NO_LOCK,
+                                              timeout))
+                .isInstanceOf(AcquireTimeoutException.class);
+
+        // make sure we actually hit the right code
+        verify(delegate).tryReadLock(timeout.minus(endTimeTick.durationSince(startTimeTick)).toNanos(),
+                                     TimeUnit.NANOSECONDS);
+    }
+
 }

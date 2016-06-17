@@ -137,17 +137,8 @@ public class WrappedStampedLock {
         assert operation != null;
         assert acquireTimeout != null;
 
-        return pessimisticRead(() -> {
-            final long stamp = MoreUninterruptibles.tryReadLockUninterruptibly(delegate,
-                                                                               acquireTimeout);
-
-            if(stamp == 0L) {
-                throw new AcquireTimeoutException();
-            }
-
-            return stamp;
-
-        },
+        return pessimisticRead(new ReadLockStampWithTimeoutSupplier(delegate,
+                                                                    () -> acquireTimeout),
                                operation);
     }
 
@@ -269,16 +260,8 @@ public class WrappedStampedLock {
         assert operation != null;
         assert acquireTimeout != null;
 
-        return write(() -> {
-            final long stamp = MoreUninterruptibles.tryWriteLockUninterruptibly(delegate,
-                                                                                acquireTimeout);
-
-            if(stamp == 0L) {   // 0 here means the lock couldn't be acquired
-                throw new AcquireTimeoutException();
-            }
-
-            return stamp;
-        },
+        return write(new WriteLockStampWithTimeoutSupplier(delegate,
+                                                           () -> acquireTimeout),
                      operation);
     }
 
@@ -324,36 +307,28 @@ public class WrappedStampedLock {
         NO_LOCK
     }
 
-    // todo - do a timeout version - RMB 2016/6/11
-
-    /**
-     *
-     * @param test this will be run in a pessimistic read lock.  If it passes (returns true) then a write lock will be
-     *             obtained and {@code onTestPassedOperation} will be run and the result returned.  If it fails (returns
-     *             false) then {@lonk onTestFailedOperation} will be run and the result returned.
-     * @param onTestPassedOperation This will be run (and result returned) if {@code test} returns true.
-     * @param onTestFailedOperation This will be run (and result returned) if {@code test} returns false.  The lock
-     *                              context that will be used when this is called is determined by the value of
-     *                              {@code testFailedLockContext}.
-     * @param testFailedLockContext If the test fails then {@code onTestFailedOperation} will be called.  This parameter
-     *                              determines what sort of lock to use (if any) when calling {@code testFailedLockContext}.
-     */
-    public <T> T writeIf(@NotNull final BooleanSupplier test,
-                         @NotNull final Supplier<T> onTestPassedOperation,
-                         @NotNull final Supplier<T> onTestFailedOperation,
-                         @NotNull final TestFailedLockContext testFailedLockContext) {
+    private <T> T writeIf(@NotNull final BooleanSupplier test,
+                          @NotNull final Supplier<T> onTestPassedOperation,
+                          @NotNull final Supplier<T> onTestFailedOperation,
+                          @NotNull final TestFailedLockContext testFailedLockContext,
+                          @NotNull final LongSupplier readLockSupplier,
+                          @NotNull final LongSupplier writeLockSupplier) {
         assert test != null;
         assert onTestPassedOperation != null;
         assert onTestFailedOperation != null;
         assert testFailedLockContext != null;
+        assert readLockSupplier != null;
+        assert writeLockSupplier != null;
 
-        long stamp = delegate.readLock();
+        long stamp = readLockSupplier.getAsLong();
+        assert stamp != 0L;
         try {
             while(test.getAsBoolean()) {
                 final long writeStamp = delegate.tryConvertToWriteLock(stamp);
                 if(writeStamp == 0L) {              // conversion failed
                     delegate.unlockRead(stamp);
-                    stamp = delegate.writeLock();
+                    stamp = writeLockSupplier.getAsLong();
+                    assert stamp != 0L;
                 }
                 else {                              // conversion was successful
                     stamp = writeStamp;
@@ -375,6 +350,79 @@ public class WrappedStampedLock {
         return onTestFailedOperation.get();
     }
 
+    /**
+     *
+     * @param test this will be run in a pessimistic read lock.  If it passes (returns true) then a write lock will be
+     *             obtained and {@code onTestPassedOperation} will be run and the result returned.  If it fails (returns
+     *             false) then {@code onTestFailedOperation} will be run and the result returned.
+     * @param onTestPassedOperation This will be run (and result returned) if {@code test} returns true.
+     * @param onTestFailedOperation This will be run (and result returned) if {@code test} returns false.  The lock
+     *                              context that will be used when this is called is determined by the value of
+     *                              {@code testFailedLockContext}.
+     * @param testFailedLockContext If the test fails then {@code onTestFailedOperation} will be called.  This parameter
+     *                              determines what sort of lock to use (if any) when calling {@code testFailedLockContext}.
+     */
+    public <T> T writeIf(@NotNull final BooleanSupplier test,
+                         @NotNull final Supplier<T> onTestPassedOperation,
+                         @NotNull final Supplier<T> onTestFailedOperation,
+                         @NotNull final TestFailedLockContext testFailedLockContext) {
+        assert test != null;
+        assert onTestPassedOperation != null;
+        assert onTestFailedOperation != null;
+        assert testFailedLockContext != null;
+
+        return writeIf(test,
+                       onTestPassedOperation,
+                       onTestFailedOperation,
+                       testFailedLockContext,
+                       delegate::readLock,
+                       delegate::writeLock);
+    }
+
+    /**
+     *
+     * @param test this will be run in a pessimistic read lock.  If it passes (returns true) then a write lock will be
+     *             obtained and {@code onTestPassedOperation} will be run and the result returned.  If it fails (returns
+     *             false) then {@code onTestFailedOperation} will be run and the result returned.
+     * @param onTestPassedOperation This will be run (and result returned) if {@code test} returns true.
+     * @param onTestFailedOperation This will be run (and result returned) if {@code test} returns false.  The lock
+     *                              context that will be used when this is called is determined by the value of
+     *                              {@code testFailedLockContext}.
+     * @param testFailedLockContext If the test fails then {@code onTestFailedOperation} will be called.  This parameter
+     *                              determines what sort of lock to use (if any) when calling {@code testFailedLockContext}.
+     */
+    public <T> T writeIf(@NotNull final BooleanSupplier test,
+                         @NotNull final Supplier<T> onTestPassedOperation,
+                         @NotNull final Supplier<T> onTestFailedOperation,
+                         @NotNull final TestFailedLockContext testFailedLockContext,
+                         @NotNull final Duration acquireTimeout) throws AcquireTimeoutException {
+        assert test != null;
+        assert onTestPassedOperation != null;
+        assert onTestFailedOperation != null;
+        assert testFailedLockContext != null;
+        assert acquireTimeout != null;
+
+        final TimeTick startTimeTick = currentTimeTickSupplier.get();
+
+
+        final Supplier<Duration> remainingTimeoutSupplier = () -> {
+            // figure out how much time has passed since we started and use what is left within the original duration
+            // as the timeout for the pessimistic lock call.
+            final Duration durationSinceStart = currentTimeTickSupplier.get().durationSince(startTimeTick);
+
+            return acquireTimeout.minus(durationSinceStart);
+        };
+
+        return writeIf(test,
+                       onTestPassedOperation,
+                       onTestFailedOperation,
+                       testFailedLockContext,
+                       new ReadLockStampWithTimeoutSupplier(delegate,
+                                                            remainingTimeoutSupplier),
+                       new WriteLockStampWithTimeoutSupplier(delegate,
+                                                             remainingTimeoutSupplier));
+    }
+
     public enum TestResult {
         PASSED,
         FAILED
@@ -384,7 +432,7 @@ public class WrappedStampedLock {
      *
      * @param test this will be run in a pessimistic read lock.  If it passes (returns true) then a write lock will be
      *             obtained and {@code onTestPassedOperation} will be run and {@link TestResult#PASSED} returned.
-     *             If it fails (returns false) then {@lonk onTestFailedOperation} will be run and {@link TestResult#FAILED}
+     *             If it fails (returns false) then {@code onTestFailedOperation} will be run and {@link TestResult#FAILED}
      *             returned.
      * @param onTestPassedOperation This will be run if {@code test} returns true.
      * @param onTestFailedOperation This will be run if {@code test} returns false.
@@ -409,5 +457,109 @@ public class WrappedStampedLock {
                            return TestResult.FAILED;
                        },
                        TestFailedLockContext.NO_LOCK);
+    }
+
+    /**
+     *
+     * @param test this will be run in a pessimistic read lock.  If it passes (returns true) then a write lock will be
+     *             obtained and {@code onTestPassedOperation} will be run and {@link TestResult#PASSED} returned.
+     *             If it fails (returns false) then {@code onTestFailedOperation} will be run and {@link TestResult#FAILED}
+     *             returned.
+     * @param onTestPassedOperation This will be run if {@code test} returns true.
+     * @param onTestFailedOperation This will be run if {@code test} returns false.
+     */
+    @NotNull
+    public TestResult writeIf(@NotNull final BooleanSupplier test,
+                              @NotNull final Runnable onTestPassedOperation,
+                              @NotNull final Runnable onTestFailedOperation,
+                              @NotNull final Duration acquireTimeout) throws AcquireTimeoutException {
+        assert test != null;
+        assert onTestPassedOperation != null;
+        assert onTestFailedOperation != null;
+        assert acquireTimeout != null;
+
+        return writeIf(test,
+                       () -> {
+                           onTestPassedOperation.run();
+
+                           return TestResult.PASSED;
+                       },
+                       () -> {
+                           onTestFailedOperation.run();
+
+                           return TestResult.FAILED;
+                       },
+                       TestFailedLockContext.NO_LOCK,
+                       acquireTimeout);
+    }
+
+    @ThreadSafe
+    private static class ReadLockStampWithTimeoutSupplier implements LongSupplier {
+        @NotNull
+        private final StampedLock delegate;
+
+        @NotNull
+        private final Supplier<Duration> timeoutSupplier;
+
+        public ReadLockStampWithTimeoutSupplier(@NotNull final StampedLock delegate,
+                                                @NotNull final Supplier<Duration> timeoutSupplier) {
+            assert delegate != null;
+            assert timeoutSupplier != null;
+
+            this.delegate = delegate;
+            this.timeoutSupplier = timeoutSupplier;
+        }
+
+        /**
+         *
+         * @return never 0 (which would indicate a timeout)
+         * @throws AcquireTimeoutException if there is a timeout
+         */
+        @Override
+        public long getAsLong() throws AcquireTimeoutException {
+            final long stamp = MoreUninterruptibles.tryReadLockUninterruptibly(delegate,
+                                                                               timeoutSupplier.get());
+
+            if(stamp == 0L) {       // 0 here means that it timed out
+                throw new AcquireTimeoutException();
+            }
+
+            return stamp;
+        }
+    }
+
+    @ThreadSafe
+    private static class WriteLockStampWithTimeoutSupplier implements LongSupplier {
+        @NotNull
+        private final StampedLock delegate;
+
+        @NotNull
+        private final Supplier<Duration> timeoutSupplier;
+
+        public WriteLockStampWithTimeoutSupplier(@NotNull final StampedLock delegate,
+                                                 @NotNull final Supplier<Duration> timeoutSupplier) {
+            assert delegate != null;
+            assert timeoutSupplier != null;
+
+            this.delegate = delegate;
+            this.timeoutSupplier = timeoutSupplier;
+        }
+
+        /**
+         *
+         * @return never 0 (which would indicate a timeout)
+         * @throws AcquireTimeoutException if there is a timeout
+         */
+        @Override
+        public long getAsLong() throws AcquireTimeoutException {
+            final long stamp = MoreUninterruptibles.tryWriteLockUninterruptibly(delegate,
+                                                                                timeoutSupplier.get());
+
+            if(stamp == 0L) {       // 0 here means that it timed out
+                throw new AcquireTimeoutException();
+            }
+
+            return stamp;
+        }
     }
 }
