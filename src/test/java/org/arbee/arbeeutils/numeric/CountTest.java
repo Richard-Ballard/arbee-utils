@@ -19,10 +19,13 @@ package org.arbee.arbeeutils.numeric;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @Test
 public class CountTest {
@@ -102,5 +105,98 @@ public class CountTest {
                         .minus(5L,
                                Count.OnExceedBoundary.USE_BOUNDARY_VALUE))
                 .isEqualTo(Count.ZERO);
+    }
+
+    public void multipliedByMultiplies() {
+
+        assertThat(Count.valueOf(10L,
+                                 Count.OnExceedBoundary.THROW)
+                        .multipliedBy(3L,
+                               Count.OnExceedBoundary.THROW))
+                .isEqualTo(Count.valueOf(30L,
+                                         Count.OnExceedBoundary.THROW));
+    }
+
+    public void multipliedByThrowsWhenNegative() {
+
+        assertThatThrownBy(() -> Count.valueOf(BigInteger.valueOf(2L),
+                                               Count.OnExceedBoundary.THROW)
+                                      .multipliedBy(-5L,
+                                             Count.OnExceedBoundary.THROW))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("value must be >= 0, not -10");
+    }
+
+    public void multipliedBySetsToZeroWhenNegative() {
+
+        assertThat(Count.valueOf(BigInteger.valueOf(2L),
+                                 Count.OnExceedBoundary.THROW)
+                        .multipliedBy(-5L,
+                               Count.OnExceedBoundary.USE_BOUNDARY_VALUE))
+                .isEqualTo(Count.ZERO);
+    }
+
+    @NotNull
+    private BigNumber getBigNumber(@NotNull final BigInteger bigInteger,
+                                   @NotNull final BigDecimal bigDecimal) {
+        assert bigInteger != null;
+        assert bigDecimal != null;
+
+        final BigNumber bigNumber = mock(BigNumber.class);
+
+        when(bigNumber.bigIntegerValue())
+                .thenReturn(bigInteger);
+
+        when(bigNumber.bigDecimalValue())
+                .thenReturn(bigDecimal);
+
+        return bigNumber;
+    }
+
+    public void multipliedByBigNumberUsesBigDecimal() {
+        final BigInteger bigInteger = BigInteger.valueOf(1L);
+        final BigDecimal bigDecimal = new BigDecimal("2.2");
+
+        assertThat(Count.valueOf(10L,
+                                 Count.OnExceedBoundary.THROW)
+                        .multipliedBy(getBigNumber(bigInteger,
+                                                   bigDecimal),
+                                      Count.OnExceedBoundary.THROW))
+                .isEqualTo(Count.valueOf(22L,
+                                         Count.OnExceedBoundary.THROW));
+
+
+
+    }
+
+    @NotNull
+    private Number getNumber(final long longValue,
+                             final double doubleValue) {
+
+        final Number number = mock(Number.class);
+
+        when(number.longValue())
+                .thenReturn(longValue);
+
+        when(number.doubleValue())
+                .thenReturn(doubleValue);
+
+        return number;
+    }
+
+    public void multipliedByNumberUsesBigDecimal() {
+        final long longValue = 1L;
+        final double doubleValue = 2.2;
+
+        assertThat(Count.valueOf(10L,
+                                 Count.OnExceedBoundary.THROW)
+                        .multipliedBy(getNumber(longValue,
+                                                doubleValue),
+                                      Count.OnExceedBoundary.THROW))
+                .isEqualTo(Count.valueOf(22L,
+                                         Count.OnExceedBoundary.THROW));
+
+
+
     }
 }

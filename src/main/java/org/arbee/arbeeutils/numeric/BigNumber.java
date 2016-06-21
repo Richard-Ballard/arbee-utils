@@ -18,12 +18,13 @@ package org.arbee.arbeeutils.numeric;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 /**
- * An extension of {@link Number} that has methods relating to {@link BigInteger}
+ * An extension of {@link Number} that has methods relating to {@link BigInteger} and {@link BigDecimal}
  */
-public abstract class BigIntegerNumber extends Number {
+public abstract class BigNumber extends Number {
 
     /**
      * Returns the value of the specified number as a {@link BigInteger},
@@ -31,4 +32,11 @@ public abstract class BigIntegerNumber extends Number {
      */
     @NotNull
     public abstract BigInteger bigIntegerValue();
+
+    /**
+     * Returns the value of the specified number as a {@link BigInteger},
+     * which may involve rounding or truncation.
+     */
+    @NotNull
+    public abstract BigDecimal bigDecimalValue();
 }

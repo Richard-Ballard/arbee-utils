@@ -19,6 +19,7 @@ package org.arbee.arbeeutils.numeric;
 import net.jcip.annotations.Immutable;
 import org.jetbrains.annotations.NotNull;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 /**
@@ -27,7 +28,7 @@ import java.math.BigInteger;
  * (which doesn't make sense for a count).
  */
 @Immutable
-public class Count extends BigIntegerNumber {
+public class Count extends BigNumber {
 
     private static final long serialVersionUID = 8108782711353619422L;
 
@@ -77,7 +78,7 @@ public class Count extends BigIntegerNumber {
     }
 
     @NotNull
-    private static BigInteger asBigInteger(@NotNull final BigIntegerNumber value) {
+    private static BigInteger asBigInteger(final @NotNull BigNumber value) {
         assert value != null;
 
         return value.bigIntegerValue();
@@ -98,7 +99,7 @@ public class Count extends BigIntegerNumber {
 
 
     @NotNull
-    public static Count valueOf(@NotNull final BigIntegerNumber value,
+    public static Count valueOf(final @NotNull BigNumber value,
                                 @NotNull final OnExceedBoundary onExceedBoundary) {
         assert value != null;
         assert onExceedBoundary != null;
@@ -155,6 +156,12 @@ public class Count extends BigIntegerNumber {
         return value;
     }
 
+    @NotNull
+    @Override
+    public BigDecimal bigDecimalValue() {
+        return new BigDecimal(value);
+    }
+
     /**
      *
      * @return the value which will be >= 0 (cast to int)
@@ -202,7 +209,7 @@ public class Count extends BigIntegerNumber {
     }
 
     @NotNull
-    public Count plus(@NotNull final BigIntegerNumber augend,
+    public Count plus(final @NotNull BigNumber augend,
                       @NotNull final OnExceedBoundary onExceedBoundary) {
         assert augend != null;
         assert onExceedBoundary != null;
@@ -245,7 +252,7 @@ public class Count extends BigIntegerNumber {
     }
 
     @NotNull
-    public Count minus(@NotNull final BigIntegerNumber subtrahend,
+    public Count minus(final @NotNull BigNumber subtrahend,
                        @NotNull final OnExceedBoundary onExceedBoundary) {
         assert subtrahend != null;
         assert onExceedBoundary != null;
@@ -275,6 +282,70 @@ public class Count extends BigIntegerNumber {
 
         return minus(asBigInteger(subtrahend),
                      onExceedBoundary);
+    }
+
+
+    /**
+     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+     * truncated.
+     */
+    @NotNull
+    public Count multipliedBy(@NotNull final BigDecimal multiplicand,
+                              @NotNull final OnExceedBoundary onExceedBoundary) {
+        assert multiplicand != null;
+        assert onExceedBoundary != null;
+
+        final BigDecimal result = new BigDecimal(value).multiply(multiplicand);
+
+        return valueOf(result.toBigInteger(),
+                       onExceedBoundary);
+    }
+
+    @NotNull
+    public Count multipliedBy(@NotNull final BigInteger multiplicand,
+                              @NotNull final OnExceedBoundary onExceedBoundary) {
+        assert multiplicand != null;
+        assert onExceedBoundary != null;
+
+        return valueOf(value.multiply(multiplicand),
+                       onExceedBoundary);
+    }
+
+    /**
+     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+     * truncated.
+     */
+    @NotNull
+    public Count multipliedBy(@NotNull final BigNumber multiplicand,
+                              @NotNull final OnExceedBoundary onExceedBoundary) {
+        assert multiplicand != null;
+        assert onExceedBoundary != null;
+
+        return multipliedBy(multiplicand.bigDecimalValue(),
+                            onExceedBoundary);
+    }
+
+    @NotNull
+    public Count multipliedBy(final long multiplicand,
+                              @NotNull final OnExceedBoundary onExceedBoundary) {
+        assert onExceedBoundary != null;
+
+        return multipliedBy(asBigInteger(multiplicand),
+                            onExceedBoundary);
+    }
+
+    /**
+     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+     * truncated.
+     */
+    @NotNull
+    public Count multipliedBy(@NotNull final Number multiplicand,
+                              @NotNull final OnExceedBoundary onExceedBoundary) {
+        assert multiplicand != null;
+        assert onExceedBoundary != null;
+
+        return multipliedBy(BigDecimal.valueOf(multiplicand.doubleValue()),
+                            onExceedBoundary);
     }
 
     @Override
