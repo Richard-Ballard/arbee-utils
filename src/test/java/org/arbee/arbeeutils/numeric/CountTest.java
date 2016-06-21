@@ -199,4 +199,65 @@ public class CountTest {
 
 
     }
+
+    public void dividedByDivides() {
+
+        assertThat(Count.valueOf(12L,
+                                 Count.OnExceedBoundary.THROW)
+                        .dividedBy(3L,
+                               Count.OnExceedBoundary.THROW))
+                .isEqualTo(Count.valueOf(4L,
+                                         Count.OnExceedBoundary.THROW));
+    }
+
+    public void dividedByThrowsWhenNegative() {
+
+        assertThatThrownBy(() -> Count.valueOf(BigInteger.valueOf(20L),
+                                               Count.OnExceedBoundary.THROW)
+                                      .dividedBy(-15L,
+                                             Count.OnExceedBoundary.THROW))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("value must be >= 0, not -1");
+    }
+
+    public void dividedBySetsToZeroWhenNegative() {
+
+        assertThat(Count.valueOf(BigInteger.valueOf(20L),
+                                 Count.OnExceedBoundary.THROW)
+                        .dividedBy(-15L,
+                               Count.OnExceedBoundary.USE_BOUNDARY_VALUE))
+                .isEqualTo(Count.ZERO);
+    }
+
+    public void dividedByBigNumberUsesBigDecimal() {
+        final BigInteger bigInteger = BigInteger.valueOf(1L);
+        final BigDecimal bigDecimal = new BigDecimal("2.2");
+
+        assertThat(Count.valueOf(10L,
+                                 Count.OnExceedBoundary.THROW)
+                        .dividedBy(getBigNumber(bigInteger,
+                                                bigDecimal),
+                                   Count.OnExceedBoundary.THROW))
+                .isEqualTo(Count.valueOf(4L,
+                                         Count.OnExceedBoundary.THROW));
+
+
+
+    }
+
+    public void dividedByNumberUsesBigDecimal() {
+        final long longValue = 1L;
+        final double doubleValue = 2.2;
+
+        assertThat(Count.valueOf(10L,
+                                 Count.OnExceedBoundary.THROW)
+                        .dividedBy(getNumber(longValue,
+                                             doubleValue),
+                                   Count.OnExceedBoundary.THROW))
+                .isEqualTo(Count.valueOf(22L,
+                                         Count.OnExceedBoundary.THROW));
+
+
+
+    }
 }

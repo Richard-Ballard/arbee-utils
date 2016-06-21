@@ -21,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 
 /**
  * This class represents a zero based count.  For any method that creates an instance (e.g. {@link #valueOf(BigInteger, OnExceedBoundary)}
@@ -345,6 +346,71 @@ public class Count extends BigNumber {
         assert onExceedBoundary != null;
 
         return multipliedBy(BigDecimal.valueOf(multiplicand.doubleValue()),
+                            onExceedBoundary);
+    }
+
+    /**
+     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+     * truncated.
+     */
+    @NotNull
+    public Count dividedBy(@NotNull final BigDecimal divisor,
+                           @NotNull final OnExceedBoundary onExceedBoundary) {
+        assert divisor != null;
+        assert onExceedBoundary != null;
+
+        final BigDecimal result = new BigDecimal(value).divide(divisor,
+                                                               10,      // make sure there is plenty of room in the scale so that the integer component is not rounded
+                                                               RoundingMode.HALF_UP);
+
+        return valueOf(result.toBigInteger(),
+                       onExceedBoundary);
+    }
+
+    @NotNull
+    public Count dividedBy(@NotNull final BigInteger divisor,
+                           @NotNull final OnExceedBoundary onExceedBoundary) {
+        assert divisor != null;
+        assert onExceedBoundary != null;
+
+        return valueOf(value.divide(divisor),
+                       onExceedBoundary);
+    }
+
+    /**
+     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+     * truncated.
+     */
+    @NotNull
+    public Count dividedBy(@NotNull final BigNumber divisor,
+                           @NotNull final OnExceedBoundary onExceedBoundary) {
+        assert divisor != null;
+        assert onExceedBoundary != null;
+
+        return dividedBy(divisor.bigDecimalValue(),
+                         onExceedBoundary);
+    }
+
+    @NotNull
+    public Count dividedBy(final long divisor,
+                           @NotNull final OnExceedBoundary onExceedBoundary) {
+        assert onExceedBoundary != null;
+
+        return dividedBy(asBigInteger(divisor),
+                         onExceedBoundary);
+    }
+
+    /**
+     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+     * truncated.
+     */
+    @NotNull
+    public Count dividedBy(@NotNull final Number divisor,
+                           @NotNull final OnExceedBoundary onExceedBoundary) {
+        assert divisor != null;
+        assert onExceedBoundary != null;
+
+        return multipliedBy(BigDecimal.valueOf(divisor.doubleValue()),
                             onExceedBoundary);
     }
 
