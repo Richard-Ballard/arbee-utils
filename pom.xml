@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.arbee</groupId>
+    <groupId>com.github.richard-ballard</groupId>
     <artifactId>arbee-utils</artifactId>
     <version>1.0</version>
 
     <name>Arbee utils</name>
     <description>A collection of utilities that I find useful across various projects</description>
-    <url>https://github.com/Richard-Ballard</url>
+    <url>https://github.com/Richard-Ballard/arbee-utils</url>
 
     <licenses>
         <license>
