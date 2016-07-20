@@ -138,7 +138,7 @@
                              default TestNG will skip the tests that depend on it - we want it to fail. RMB 2016/06/04 -->
                         <property>
                             <name>listener</name>
-                            <value>org.arbee.arbeeutils.test.FailOnSkipTestListenerAdapter</value>
+                            <value>com.github.richardballard.arbeeutils.test.FailOnSkipTestListenerAdapter</value>
                         </property>
                     </properties>
                 </configuration>
