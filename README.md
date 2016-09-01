@@ -7,7 +7,7 @@ To download the most recent maven artifact go to [Maven Central](http://search.m
 ## Release Notes
 Release | Changes
 --- |  ---
-1.0 | <ul><li>Initial Release</li></ul>
+1.2 | <ul><li>Split out some functionality to arbee-core-types (to enable code reuse)</li><li>Split out some functionality to arbee-test-utils (to enable code reuse)</li></ul>
 1.1 | <ul><li>Added `MoreCollectors`</li></ul>
-next | <ul><li>Split out some functionality to arbee-core-types (to enable code reuse)</li><li>Split out some functionality to arbee-test-utils (to enable code reuse)</li></ul>
+1.0 | <ul><li>Initial Release</li></ul>
 
