@@ -16,8 +16,8 @@
 
 package com.github.richardballard.arbeeutils.misc;
 
+import com.github.richardballard.arbeetestutils.test.MoreMockUtils;
 import com.google.common.collect.ImmutableList;
-import com.github.richardballard.arbeeutils.test.MockUtils;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
@@ -35,7 +35,7 @@ public class ChangeCheckerTest {
 
     @NotNull
     private Supplier<Optional<String>> getValueSupplier(@NotNull final ImmutableList<Optional<String>> values) {
-        return MockUtils.mockSupplierMultipleAnswers(values);
+        return MoreMockUtils.mockSupplierMultipleAnswers(values);
     }
 
     public void firstCallReturnsChange() {

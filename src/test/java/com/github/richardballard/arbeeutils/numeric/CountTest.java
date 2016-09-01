@@ -16,6 +16,7 @@
 
 package com.github.richardballard.arbeeutils.numeric;
 
+import com.github.richardballard.arbeecoretypes.numeric.BigNumber;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
@@ -136,8 +137,9 @@ public class CountTest {
                 .isEqualTo(Count.ZERO);
     }
 
-    private @NotNull BigNumber getBigNumber(@NotNull final BigInteger bigInteger,
-                                            @NotNull final BigDecimal bigDecimal) {
+    @NotNull
+    private BigNumber getBigNumber(@NotNull final BigInteger bigInteger,
+                                   @NotNull final BigDecimal bigDecimal) {
         assert bigInteger != null;
         assert bigDecimal != null;
 

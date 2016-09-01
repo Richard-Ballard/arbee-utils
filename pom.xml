@@ -103,6 +103,18 @@
             <version>1.7.21</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.github.richard-ballard</groupId>
+            <artifactId>arbee-core-types</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.richard-ballard</groupId>
+            <artifactId>arbee-test-utils</artifactId>
+            <version>1.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <distributionManagement>
@@ -138,7 +150,7 @@
                              default TestNG will skip the tests that depend on it - we want it to fail. RMB 2016/06/04 -->
                         <property>
                             <name>listener</name>
-                            <value>com.github.richardballard.arbeeutils.test.FailOnSkipTestListenerAdapter</value>
+                            <value>com.github.richardballard.arbeetestutils.test.FailOnSkipTestListenerAdapter</value>
                         </property>
                     </properties>
                 </configuration>

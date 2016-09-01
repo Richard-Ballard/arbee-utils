@@ -16,10 +16,10 @@
 
 package com.github.richardballard.arbeeutils.concurrent;
 
-import com.google.common.collect.ImmutableList;
-import com.github.richardballard.arbeeutils.test.MockUtils;
+import com.github.richardballard.arbeetestutils.test.MoreMockUtils;
 import com.github.richardballard.arbeeutils.time.TimeTick;
 import com.github.richardballard.arbeeutils.time.TimeTicks;
+import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.NotNull;
 import org.mockito.ArgumentCaptor;
 import org.testng.annotations.Test;
@@ -54,7 +54,7 @@ public class VariableDelayRepeatingExecutorServiceTest {
     private Supplier<TimeTick> getCurrentTimeTickSupplier(final @NotNull ImmutableList<TimeTick> timeTicks) {
         assert timeTicks != null;
 
-        return MockUtils.mockSupplierMultipleAnswers(timeTicks);
+        return MoreMockUtils.mockSupplierMultipleAnswers(timeTicks);
     }
 
     @SuppressWarnings("unchecked")

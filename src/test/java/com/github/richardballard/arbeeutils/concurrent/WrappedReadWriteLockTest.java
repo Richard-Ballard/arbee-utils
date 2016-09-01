@@ -16,7 +16,7 @@
 
 package com.github.richardballard.arbeeutils.concurrent;
 
-import com.github.richardballard.arbeeutils.test.MockUtils;
+import com.github.richardballard.arbeetestutils.test.MoreMockUtils;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
@@ -25,9 +25,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @Test
 public class WrappedReadWriteLockTest {
@@ -59,8 +57,8 @@ public class WrappedReadWriteLockTest {
     @NotNull
     private Function<Lock, WrappedLock> getWrappedLockFromLockFunction(@NotNull final WrappedLock wrappedLock) {
 
-        return MockUtils.mockFunctionSingleAnswer(Lock.class,
-                                                  wrappedLock);
+        return MoreMockUtils.mockFunctionSingleAnswer(Lock.class,
+                                                      wrappedLock);
     }
 
     @NotNull

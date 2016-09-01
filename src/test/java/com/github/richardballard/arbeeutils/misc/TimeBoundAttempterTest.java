@@ -16,11 +16,11 @@
 
 package com.github.richardballard.arbeeutils.misc;
 
-import com.google.common.collect.ImmutableList;
+import com.github.richardballard.arbeetestutils.test.MoreMockUtils;
 import com.github.richardballard.arbeeutils.numeric.Count;
-import com.github.richardballard.arbeeutils.test.MockUtils;
 import com.github.richardballard.arbeeutils.time.TimeTick;
 import com.github.richardballard.arbeeutils.time.TimeTicks;
+import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
@@ -47,7 +47,7 @@ public class TimeBoundAttempterTest {
     private Supplier<TimeTick> getCurrentTimeTickSupplier(@NotNull final ImmutableList<TimeTick> timeTicks) {
         assert timeTicks != null;
 
-        return MockUtils.mockSupplierMultipleAnswers(timeTicks);
+        return MoreMockUtils.mockSupplierMultipleAnswers(timeTicks);
     }
 
     @SuppressWarnings("unchecked")
@@ -61,15 +61,15 @@ public class TimeBoundAttempterTest {
     private Function<TimeBoundAttempter.OperationWithAttemptCount<String>, String> getAllAttemptsFailedFunction(@NotNull final String result) {
         assert result != null;
 
-        return MockUtils.mockFunctionSingleAnswer((Class<TimeBoundAttempter.OperationWithAttemptCount<String>>)(Class<?>)TimeBoundAttempter.OperationWithAttemptCount.class,
-                                                  result);
+        return MoreMockUtils.mockFunctionSingleAnswer((Class<TimeBoundAttempter.OperationWithAttemptCount<String>>)(Class<?>)TimeBoundAttempter.OperationWithAttemptCount.class,
+                                                      result);
     }
 
     @NotNull
     private Supplier<String> getOperation(@NotNull final String value) {
         assert value != null;
 
-        return MockUtils.mockSupplierSingleAnswer(value);
+        return MoreMockUtils.mockSupplierSingleAnswer(value);
     }
 
     @SuppressWarnings("unchecked")

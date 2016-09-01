@@ -16,8 +16,8 @@
 
 package com.github.richardballard.arbeeutils.function;
 
+import com.github.richardballard.arbeetestutils.test.MoreMockUtils;
 import com.google.common.collect.ImmutableList;
-import com.github.richardballard.arbeeutils.test.MockUtils;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
@@ -32,7 +32,7 @@ public class RefreshableMemoisingSupplierTest {
 
     @NotNull
     private Supplier<Integer> getDelegate() {
-        return MockUtils.mockSupplierMultipleAnswers(ImmutableList.of(1, 2, 3, 4, 5, 6, 7, 8));
+        return MoreMockUtils.mockSupplierMultipleAnswers(ImmutableList.of(1, 2, 3, 4, 5, 6, 7, 8));
     }
 
     public void getReturnsMemoised() {

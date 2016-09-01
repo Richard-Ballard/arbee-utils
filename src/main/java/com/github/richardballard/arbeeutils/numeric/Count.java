@@ -16,6 +16,7 @@
 
 package com.github.richardballard.arbeeutils.numeric;
 
+import com.github.richardballard.arbeecoretypes.numeric.BigNumber;
 import net.jcip.annotations.Immutable;
 import org.jetbrains.annotations.NotNull;
 

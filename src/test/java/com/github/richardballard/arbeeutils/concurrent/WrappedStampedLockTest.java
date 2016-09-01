@@ -16,10 +16,10 @@
 
 package com.github.richardballard.arbeeutils.concurrent;
 
-import com.google.common.collect.ImmutableList;
-import com.github.richardballard.arbeeutils.test.MockUtils;
+import com.github.richardballard.arbeetestutils.test.MoreMockUtils;
 import com.github.richardballard.arbeeutils.time.TimeTick;
 import com.github.richardballard.arbeeutils.time.TimeTicks;
+import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.NotNull;
 import org.mockito.verification.VerificationMode;
 import org.testng.annotations.Test;
@@ -52,7 +52,7 @@ public class WrappedStampedLockTest {
     private Supplier<TimeTick> getCurrentTimeTickSupplier(@NotNull final ImmutableList<TimeTick> timeTicks) {
         assert timeTicks != null;
 
-        return MockUtils.mockSupplierMultipleAnswers(timeTicks);
+        return MoreMockUtils.mockSupplierMultipleAnswers(timeTicks);
     }
 
     @NotNull
@@ -387,16 +387,16 @@ public class WrappedStampedLockTest {
     getWrappedReadWriteLockFromReadWriteLockFunction(@NotNull final WrappedReadWriteLock wrappedReadWriteLock) {
         assert wrappedReadWriteLock != null;
 
-        return MockUtils.mockFunctionSingleAnswer(ReadWriteLock.class,
-                                                  wrappedReadWriteLock);
+        return MoreMockUtils.mockFunctionSingleAnswer(ReadWriteLock.class,
+                                                      wrappedReadWriteLock);
     }
 
     @NotNull
     private Function<Lock, WrappedLock>  getWrappedLockFromLockFunction(@NotNull final WrappedLock wrappedLock) {
         assert wrappedLock != null;
 
-        return MockUtils.mockFunctionSingleAnswer(Lock.class,
-                                                  wrappedLock);
+        return MoreMockUtils.mockFunctionSingleAnswer(Lock.class,
+                                                      wrappedLock);
     }
 
     @NotNull
@@ -480,7 +480,7 @@ public class WrappedStampedLockTest {
     private Supplier<String> getWriteIfOperation(@NotNull final String value) {
         assert value != null;
 
-        return MockUtils.mockSupplierSingleAnswer(value);
+        return MoreMockUtils.mockSupplierSingleAnswer(value);
     }
 
     private void testWriteIfTestFails(@NotNull final WrappedStampedLock.TestFailedLockContext testFailedLockContext)
@@ -518,7 +518,7 @@ public class WrappedStampedLockTest {
                     return failedText;
                 });
 
-        final BooleanSupplier test = MockUtils.mockBooleanSupplierSingleAnswer(false);
+        final BooleanSupplier test = MoreMockUtils.mockBooleanSupplierSingleAnswer(false);
         when(test.getAsBoolean())
                 .thenAnswer(invocation -> {
                     verify(delegate).readLock();
