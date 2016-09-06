@@ -6,7 +6,7 @@
 
     <groupId>com.github.richard-ballard</groupId>
     <artifactId>arbee-utils</artifactId>
-    <version>1.2</version>
+    <version>1.3</version>
 
     <name>Arbee utils</name>
     <description>A collection of utilities that I find useful across various projects</description>
