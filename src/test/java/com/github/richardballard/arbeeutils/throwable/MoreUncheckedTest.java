@@ -70,4 +70,17 @@ public class MoreUncheckedTest {
 
         verify(handler).accept(originExc);
     }
+
+    public void callsThrowsIfHandlerDoesntThrow() throws Exception {
+        final Callable<String> callable = MoreMockUtils.mockCallableSingleAnswer(ANY_VALUE);
+
+        final IOException originExc = new IOException("test");
+        when(callable.call())
+                .thenThrow(originExc);
+
+        assertThatThrownBy(() -> MoreUnchecked.call(callable,
+                                                    MoreMockUtils.mockConsumer()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Exception handler must throw a RuntimeException");
+    }
 }
