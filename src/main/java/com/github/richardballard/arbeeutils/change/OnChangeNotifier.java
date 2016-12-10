@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.richardballard.arbeeutils.misc;
+package com.github.richardballard.arbeeutils.change;
 
 import com.google.common.annotations.VisibleForTesting;
 import net.jcip.annotations.ThreadSafe;

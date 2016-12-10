@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.richardballard.arbeeutils.misc;
+package com.github.richardballard.arbeeutils.change;
 
 import net.jcip.annotations.Immutable;
 import org.jetbrains.annotations.NotNull;

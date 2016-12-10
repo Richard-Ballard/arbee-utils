@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.richardballard.arbeeutils.misc;
+package com.github.richardballard.arbeeutils.execution;
 
 import com.github.richardballard.arbeetestutils.test.MoreMockUtils;
 import com.github.richardballard.arbeeutils.numeric.Count;

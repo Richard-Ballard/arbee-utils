@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.richardballard.arbeeutils.misc;
+package com.github.richardballard.arbeeutils.change;
 
 import com.github.richardballard.arbeeutils.concurrent.WrappedLock;
 import net.jcip.annotations.ThreadSafe;

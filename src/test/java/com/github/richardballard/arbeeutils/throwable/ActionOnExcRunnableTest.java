@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.richardballard.arbeeutils.misc;
+package com.github.richardballard.arbeeutils.throwable;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
