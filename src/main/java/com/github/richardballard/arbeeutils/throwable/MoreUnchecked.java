@@ -35,7 +35,9 @@ public enum MoreUnchecked {
     /**
      * A {@link Consumer} that wraps any {@link Throwable} in a {@link RuntimeException}.
      */
-    public static final Consumer<Throwable> PROPAGATE_AS_RUNTIME_EXCEPTION = Throwables::propagate;
+    public static final Consumer<Throwable> PROPAGATE_AS_RUNTIME_EXCEPTION = thr -> {
+        throw MoreThrowables.asRuntimeException(thr);
+    };
 
     /**
      * Calls {@link Callable#call()}.  If this throws then the exception will be passed to {@code handler}
