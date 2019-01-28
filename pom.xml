@@ -143,7 +143,8 @@
                 <configuration>
                     <properties>
                         <!-- Add a listener that treats skipped tests as failures.  If a DataProvider throws then by
-                             default TestNG will skip the tests that depend on it - we want it to fail. RMB 2016/06/04 -->
+                             default TestNG will skip the tests that depend on it - we want it to fail. RMB 2016/06/04
+                              -->
                         <property>
                             <name>listener</name>
                             <value>com.github.richardballard.arbeetestutils.test.FailOnSkipTestListenerAdapter</value>

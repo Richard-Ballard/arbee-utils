@@ -57,10 +57,13 @@ public class TimeBoundAttempterTest {
   }
 
   @SuppressWarnings("unchecked")
-  private @NotNull Function<TimeBoundAttempter.OperationWithAttemptCount<String>, String> getAllAttemptsFailedFunction(final @NotNull String result) {
+  private @NotNull Function<TimeBoundAttempter.OperationWithAttemptCount<String>, String> getAllAttemptsFailedFunction(
+      final @NotNull String result) {
 
-    return MoreMockUtils.mockFunctionSingleAnswer((Class<TimeBoundAttempter.OperationWithAttemptCount<String>>)(Class<?>)TimeBoundAttempter.OperationWithAttemptCount.class,
-                                                  result);
+    return MoreMockUtils.mockFunctionSingleAnswer(
+        (Class<TimeBoundAttempter.OperationWithAttemptCount<String>>)(Class<?>)
+            TimeBoundAttempter.OperationWithAttemptCount.class,
+        result);
   }
 
   private @NotNull Supplier<String> getOperation(final @NotNull String value) {

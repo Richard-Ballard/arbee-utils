@@ -40,7 +40,8 @@ public interface ByIdSpecifier<T> extends Predicate<T> {
    * <p/>
    * If this returns an empty set then it means 'exclude everything' (i.e. match nothing).
    *
-   * @return empty if inclusions are not applicable, e.g. if this instance is one that includes everything with some exclusions.
+   * @return empty if inclusions are not applicable, e.g. if this instance is one that includes everything with some
+   * exclusions.
    */
   @SuppressWarnings("OptionalContainsCollection")
   @NotNull
@@ -57,7 +58,8 @@ public interface ByIdSpecifier<T> extends Predicate<T> {
    * <p/>
    * If this returns an empty set then it means 'include everything'
 
-   * @return empty if exclusions are not applicable, e.g. if this instance is one that excludes everything with some inclusions.
+   * @return empty if exclusions are not applicable, e.g. if this instance is one that excludes everything with some
+   * inclusions.
    */
   @SuppressWarnings("OptionalContainsCollection")
   @NotNull

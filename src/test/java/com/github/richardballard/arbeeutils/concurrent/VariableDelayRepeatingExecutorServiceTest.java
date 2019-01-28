@@ -132,7 +132,8 @@ public class VariableDelayRepeatingExecutorServiceTest {
     public void timeIsBrokenIntoBands() {
         final ScheduledExecutorService executorService = getExecutorService();
         final TimeTick initialTimeTick = TimeTicks.explicitTimeTick(100L);
-        final Supplier<TimeTick> currentTimeTickSupplier = getCurrentTimeTickSupplier(ImmutableList.of(initialTimeTick));
+        final Supplier<TimeTick> currentTimeTickSupplier =
+            getCurrentTimeTickSupplier(ImmutableList.of(initialTimeTick));
 
         final VariableDelayRepeatingExecutorService service
                 = new VariableDelayRepeatingExecutorService(executorService,
@@ -148,14 +149,16 @@ public class VariableDelayRepeatingExecutorServiceTest {
         final Duration finalFrequency = Duration.ofNanos(900L);
 
         final VariableDelayRepeatingExecutorService.OperationConfig operationConfig
-                = new VariableDelayRepeatingExecutorService.OperationConfig(ImmutableList.of(new VariableDelayRepeatingExecutorService.OperationConfig.FrequencyForDuration(firstActive,
-                                                                                                                                                                            firstFrequency),
-                                                                                             new VariableDelayRepeatingExecutorService.OperationConfig.FrequencyForDuration(secondActive,
-                                                                                                                                                                            secondFrequency),
-                                                                                             new VariableDelayRepeatingExecutorService.OperationConfig.FrequencyForDuration(thirdActive,
-                                                                                                                                                                            thirdFrequency)),
-                                                                            finalFrequency);
-        service.start(operationConfig,
+                = new VariableDelayRepeatingExecutorService.OperationConfig(
+            ImmutableList.of(
+                new VariableDelayRepeatingExecutorService.OperationConfig.FrequencyForDuration(firstActive,
+                                                                                               firstFrequency),
+                new VariableDelayRepeatingExecutorService.OperationConfig.FrequencyForDuration(secondActive,
+                                                                                               secondFrequency),
+                new VariableDelayRepeatingExecutorService.OperationConfig.FrequencyForDuration(thirdActive,
+                                                                                               thirdFrequency)),
+            finalFrequency);
+      service.start(operationConfig,
                       getOperation(99),
                       ANY_INITIAL_DELAY);
 

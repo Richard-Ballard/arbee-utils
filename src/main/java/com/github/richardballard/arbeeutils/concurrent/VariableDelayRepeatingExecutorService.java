@@ -146,7 +146,7 @@ public class VariableDelayRepeatingExecutorService {
 
         // this should never be null as when the map is constructed the current time (which is prior to 'now')
         // is added
-        assert floorEntry != null;
+        Preconditions.checkState(floorEntry != null);
 
         final Duration delay = floorEntry.getValue();
 

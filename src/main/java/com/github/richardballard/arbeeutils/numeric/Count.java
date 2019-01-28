@@ -26,9 +26,9 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 
 /**
- * This class represents a zero based count.  For any method that creates an instance (e.g. {@link #valueOf(BigInteger, OnExceedBoundary)}
- * there is an {@code onExceedBoundary} parameter which indicates what should happen if the result would be negative
- * (which doesn't make sense for a count).
+ * This class represents a zero based count.  For any method that creates an instance (e.g.
+ * {@link #valueOf(BigInteger, OnExceedBoundary)} there is an {@code onExceedBoundary} parameter which indicates what
+ * should happen if the result would be negative (which doesn't make sense for a count).
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
 @Immutable
@@ -304,7 +304,10 @@ public final class Count extends BigNumber {
                                   final @NotNull OnExceedBoundary onExceedBoundary) {
 
     final BigDecimal result = new BigDecimal(value).divide(divisor,
-                                                           10,      // make sure there is plenty of room in the scale so that the integer component is not rounded
+                                                           // make sure there is plenty of room in the
+                                                           // scale so that the integer component is not
+                                                           // rounded
+                                                           10,
                                                            RoundingMode.HALF_UP);
 
     return valueOf(result.toBigInteger(),

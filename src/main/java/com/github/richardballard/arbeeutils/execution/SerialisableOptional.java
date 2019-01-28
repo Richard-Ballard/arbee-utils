@@ -29,9 +29,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * NOTE - This code is taken almost verbatim from <a href="https://github.com/CodeFX-org/demo-serialize-optional">a CodeFx
- * blog here</a>.  The original source has the <a href="http://unlicense.org">unlicensed licence</a>.  For a description
- * of the motivation for this class see <a href="http://blog.codefx.org/java/serialize-optional/> the blog post itself</a>
+ * NOTE - This code is taken almost verbatim from <a href="https://github.com/CodeFX-org/demo-serialize-optional">
+ *   a CodeFx blog here</a>.  The original source has the <a href="http://unlicense.org">unlicensed licence</a>.  For a
+ *   description of the motivation for this class see <a href="http://blog.codefx.org/java/serialize-optional/> the blog
+ *   post itself</a>
  *
  * Convenience class to wrap an {@link Optional} for serialisation. Instances of this class are immutable.
  * <p>
@@ -166,7 +167,9 @@ public class SerialisableOptional <T extends Serializable> implements Serializab
    * @see Optional#of(Object)
    */
   @SuppressWarnings("ProhibitedExceptionDeclared")
-  public static @NotNull <T extends Serializable> SerialisableOptional<T> of(final @NotNull T value) throws NullPointerException {
+  public static @NotNull <T extends Serializable> SerialisableOptional<T> of(final @NotNull T value)
+      throws NullPointerException {
+
     Objects.requireNonNull(value);
 
     return new SerialisableOptional<>(Optional.of(value));

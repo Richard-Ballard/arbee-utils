@@ -16,6 +16,7 @@
 
 package com.github.richardballard.arbeeutils.concurrent;
 
+import com.google.common.base.Preconditions;
 import net.jcip.annotations.ThreadSafe;
 import com.github.richardballard.arbeeutils.time.TimeTick;
 import org.jetbrains.annotations.NotNull;
@@ -48,9 +49,11 @@ import java.util.function.Supplier;
  * <p/>
  * Optimistic locks may be 'started' while there are any other kind of locks (including write locks) outstanding.
  * Once the operation is finished the code tests to see if a write lock was in progress during the operation and if
- * so then the optimistic lock fails.  The code attempts a number of optimistic locks before failing over to an pessimistic
- * lock.  Because of this very loose kind of locking (and the fact that the operation may be called any number of times),
- * the operation itself (that is run during the optimistic lock attempt) must not update any state - it must read only.
+ * so then the optimistic lock fails.  The code attempts a number of optimistic locks before failing over to a
+ * pessimistic lock.  Because of this very loose kind of locking (and the fact that the operation may be called any
+ * number of times), the operation itself (that is run during the optimistic lock attempt) must not update any
+ * state - it must read only.
+ * <p/>
  * See {@link #optimisticRead(Supplier)} for more information.
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
@@ -58,12 +61,14 @@ import java.util.function.Supplier;
 public class WrappedStampedLock {
 
   // keep this number small as the typical case for doing a optimistic lock is a short operation.  If the first
-  // lock attempt fails and the operation is short then chances are that the subsequent attempts will also fail.  RMB 2016/06/05
+  // lock attempt fails and the operation is short then chances are that the subsequent attempts will also fail.
+  // RMB 2016/06/05
   private static final int NUM_OPTIMISTIC_ATTEMPTS = 2;
 
   private final @NotNull StampedLock delegate;
 
-  private final @NotNull Function<? super ReadWriteLock, ? extends WrappedReadWriteLock> wrappedReadWriteLockFromReadWriteLockFunction;
+  private final @NotNull Function<? super ReadWriteLock, ? extends WrappedReadWriteLock>
+      wrappedReadWriteLockFromReadWriteLockFunction;
 
   private final @NotNull Function<? super Lock, ? extends WrappedLock> wrappedLockFromLockFunction;
 
@@ -98,7 +103,7 @@ public class WrappedStampedLock {
                                 final @NotNull Supplier<T> operation) {
 
     final long stamp = readLockStampSupplier.getAsLong();
-    assert stamp != 0L;
+    Preconditions.checkState(stamp != 0L);
     try {
       return operation.get();
     }
@@ -161,8 +166,8 @@ public class WrappedStampedLock {
    * The thread that is running the optimistic lock operation reads the first 32 bits of the long.  Another thread
    * writes a new value to the long (in a write lock).  The read thread reads the remaining 32 bits and so reads
    * a invalid number and throws BadValueException.  If it were to not make the decision to throw if the value < 10
-   * then after reading the code would see that a write lock had occurred whilst reading and so re-attempt the optimistic
-   * read (thus returning the correct number).
+   * then after reading the code would see that a write lock had occurred whilst reading and so re-attempt the
+   * optimistic read (thus returning the correct number).
    * <p/>
    * Another example - if the code in the optimistic read iterates through a list then another thread may update
    * the list and so the reader gets a {@link java.util.ConcurrentModificationException}.  In this case a
@@ -184,8 +189,8 @@ public class WrappedStampedLock {
    * The thread that is running the optimistic lock operation reads the first 32 bits of the long.  Another thread
    * writes a new value to the long (in a write lock).  The read thread reads the remaining 32 bits and so reads
    * a invalid number and throws BadValueException.  If it were to not make the decision to throw if the value < 10
-   * then after reading the code would see that a write lock had occurred whilst reading and so re-attempt the optimistic
-   * read (thus returning the correct number).
+   * then after reading the code would see that a write lock had occurred whilst reading and so re-attempt the
+   * otimistic read (thus returning the correct number).
    * <p/>
    * Another example - if the code in the optimistic read iterates through a list then another thread may update
    * the list and so the reader gets a {@link java.util.ConcurrentModificationException}.  In this case a
@@ -197,9 +202,10 @@ public class WrappedStampedLock {
     final TimeTick startTimeTick = currentTimeTickSupplier.get();
 
     return optimisticRead(() -> {
-                            // figure out how much time has passed since we started and use what is left within the original duration
-                            // as the timeout for the pessimistic lock call.
-                            final Duration durationSinceStart = currentTimeTickSupplier.get().durationSince(startTimeTick);
+                            // figure out how much time has passed since we started and use what is left within the
+                            // original duration as the timeout for the pessimistic lock call.
+                            final Duration durationSinceStart =
+                                currentTimeTickSupplier.get().durationSince(startTimeTick);
 
                             return pessimisticRead(operation,
                                                    acquireTimeout.minus(durationSinceStart));
@@ -211,7 +217,7 @@ public class WrappedStampedLock {
                       final @NotNull Supplier<T> operation) {
 
     final long stamp = writeLockStampSupplier.getAsLong();
-    assert stamp != 0L;
+    Preconditions.checkState(stamp != 0L);
     try {
       return operation.get();
     }
@@ -290,14 +296,14 @@ public class WrappedStampedLock {
                         final @NotNull LongSupplier writeLockSupplier) {
 
     long stamp = readLockSupplier.getAsLong();
-    assert stamp != 0L;
+    Preconditions.checkState(stamp != 0L);
     try {
       while(test.getAsBoolean()) {
         final long writeStamp = delegate.tryConvertToWriteLock(stamp);
         if(writeStamp == 0L) {              // conversion failed
           delegate.unlockRead(stamp);
           stamp = writeLockSupplier.getAsLong();
-          assert stamp != 0L;
+          Preconditions.checkState(stamp != 0L);
         }
         else {                              // conversion was successful
           stamp = writeStamp;
@@ -314,7 +320,9 @@ public class WrappedStampedLock {
       delegate.unlock(stamp); // could be read or write lock
     }
 
-    assert testFailedLockContext == TestFailedLockContext.NO_LOCK : testFailedLockContext;
+    Preconditions.checkState(testFailedLockContext == TestFailedLockContext.NO_LOCK,
+                             "context = %s",
+                             testFailedLockContext);
 
     return onTestFailedOperation.get();
   }
@@ -329,7 +337,8 @@ public class WrappedStampedLock {
    *                              context that will be used when this is called is determined by the value of
    *                              {@code testFailedLockContext}.
    * @param testFailedLockContext If the test fails then {@code onTestFailedOperation} will be called.  This parameter
-   *                              determines what sort of lock to use (if any) when calling {@code testFailedLockContext}.
+   *                              determines what sort of lock to use (if any) when calling
+   *                              {@code testFailedLockContext}.
    */
   public <T> T writeIf(final @NotNull BooleanSupplier test,
                        final @NotNull Supplier<? extends T> onTestPassedOperation,
@@ -354,7 +363,8 @@ public class WrappedStampedLock {
    *                              context that will be used when this is called is determined by the value of
    *                              {@code testFailedLockContext}.
    * @param testFailedLockContext If the test fails then {@code onTestFailedOperation} will be called.  This parameter
-   *                              determines what sort of lock to use (if any) when calling {@code testFailedLockContext}.
+   *                              determines what sort of lock to use (if any) when calling
+   *                              {@code testFailedLockContext}.
    */
   public <T> T writeIf(final @NotNull BooleanSupplier test,
                        final @NotNull Supplier<? extends T> onTestPassedOperation,
@@ -392,8 +402,8 @@ public class WrappedStampedLock {
    *
    * @param test this will be run in a pessimistic read lock.  If it passes (returns true) then a write lock will be
    *             obtained and {@code onTestPassedOperation} will be run and {@link TestResult#PASSED} returned.
-   *             If it fails (returns false) then {@code onTestFailedOperation} will be run and {@link TestResult#FAILED}
-   *             returned.
+   *             If it fails (returns false) then {@code onTestFailedOperation} will be run and
+   *             {@link TestResult#FAILED} returned.
    * @param onTestPassedOperation This will be run if {@code test} returns true.
    * @param onTestFailedOperation This will be run if {@code test} returns false.
    */
@@ -419,8 +429,8 @@ public class WrappedStampedLock {
    *
    * @param test this will be run in a pessimistic read lock.  If it passes (returns true) then a write lock will be
    *             obtained and {@code onTestPassedOperation} will be run and {@link TestResult#PASSED} returned.
-   *             If it fails (returns false) then {@code onTestFailedOperation} will be run and {@link TestResult#FAILED}
-   *             returned.
+   *             If it fails (returns false) then {@code onTestFailedOperation} will be run and
+   *             {@link TestResult#FAILED} returned.
    * @param onTestPassedOperation This will be run if {@code test} returns true.
    * @param onTestFailedOperation This will be run if {@code test} returns false.
    */

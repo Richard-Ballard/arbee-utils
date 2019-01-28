@@ -52,10 +52,11 @@ public class TimeBoundAttempter<T> {
    * @param allAttemptsFailedFunction if all attempts fail then this will be called.  The result of this function
    *                                  will be used as the result of the call to {@link #performOperation(Supplier)}
    */
-  public TimeBoundAttempter(final @NotNull Duration maxOperationDuration,
-                            final @NotNull Supplier<? extends TimeTick> currentTimeTickSupplier,
-                            final @NotNull Consumer<? super OperationWithAttemptCount<T>> attemptFailedConsumer,
-                            final @NotNull Function<? super OperationWithAttemptCount<T>, ? extends T> allAttemptsFailedFunction) {
+  public TimeBoundAttempter(
+      final @NotNull Duration maxOperationDuration,
+      final @NotNull Supplier<? extends TimeTick> currentTimeTickSupplier,
+      final @NotNull Consumer<? super OperationWithAttemptCount<T>> attemptFailedConsumer,
+      final @NotNull Function<? super OperationWithAttemptCount<T>, ? extends T> allAttemptsFailedFunction) {
 
     this.maxOperationDuration = maxOperationDuration;
     this.currentTimeTickSupplier = currentTimeTickSupplier;

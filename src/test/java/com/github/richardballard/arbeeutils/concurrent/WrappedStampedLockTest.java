@@ -19,6 +19,7 @@ package com.github.richardballard.arbeeutils.concurrent;
 import com.github.richardballard.arbeetestutils.test.MoreMockUtils;
 import com.github.richardballard.arbeeutils.time.TimeTick;
 import com.github.richardballard.arbeeutils.time.TimeTicks;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.NotNull;
 import org.mockito.verification.VerificationMode;
@@ -57,9 +58,11 @@ public class WrappedStampedLockTest {
                                            final long optimisticReadStamp,
                                            final boolean isValidStamp,
                                            final long writeStamp,
-                                           final @NotNull long... tryConvertToWriteLockStamp) throws InterruptedException {
+                                           final @NotNull long... tryConvertToWriteLockStamp)
+      throws InterruptedException {
 
-    assert tryConvertToWriteLockStamp.length > 0;
+    Preconditions.checkArgument(tryConvertToWriteLockStamp.length > 0,
+                                "at least one tryConvertToWriteLockStamp must be supplied");
 
     final StampedLock lock = mock(StampedLock.class);
 
@@ -249,7 +252,8 @@ public class WrappedStampedLockTest {
   public void optimisticReadOkIfWithinTimeout() throws InterruptedException {
     final long readStamp = 234L;
     final StampedLock delegate = getDelegate(readStamp,
-                                             0L,        // fail the tryOptimistic read so it fails over to a pessimistic read
+                                             // fail the tryOptimistic read so it fails over to a pessimistic read
+                                             0L,
                                              false,
                                              ANY_STAMP,
                                              ANY_STAMP);
@@ -276,7 +280,8 @@ public class WrappedStampedLockTest {
 
   public void optimisticReadThrowsOnTimeout() throws InterruptedException {
     final StampedLock delegate = getDelegate(0L,        // 0 for a tryReadLock indicates a timeout
-                                             0L,        // fail the tryOptimistic read so it fails over to a pessimistic read
+                                             // fail the tryOptimistic read so it fails over to a pessimistic read
+                                             0L,
                                              false,
                                              ANY_STAMP,
                                              ANY_STAMP);
@@ -426,10 +431,11 @@ public class WrappedStampedLockTest {
                                                sourceLock,
                                                getLock());
 
-    final WrappedStampedLock lock = new WrappedStampedLock(delegate,
-                                                           getWrappedReadWriteLockFromReadWriteLockFunction(getWrappedReadWriteLock()),
-                                                           wrappedLockFromLockFunction,
-                                                           getCurrentTimeTickSupplier(ANY_TIME_TICKS));
+    final WrappedStampedLock lock =
+        new WrappedStampedLock(delegate,
+                               getWrappedReadWriteLockFromReadWriteLockFunction(getWrappedReadWriteLock()),
+                               wrappedLockFromLockFunction,
+                               getCurrentTimeTickSupplier(ANY_TIME_TICKS));
 
     assertThat(lock.asReadLock())
         .isEqualTo(wrappedLock);
@@ -449,10 +455,11 @@ public class WrappedStampedLockTest {
                                                getLock(),
                                                sourceLock);
 
-    final WrappedStampedLock lock = new WrappedStampedLock(delegate,
-                                                           getWrappedReadWriteLockFromReadWriteLockFunction(getWrappedReadWriteLock()),
-                                                           wrappedLockFromLockFunction,
-                                                           getCurrentTimeTickSupplier(ANY_TIME_TICKS));
+    final WrappedStampedLock lock =
+        new WrappedStampedLock(delegate,
+                               getWrappedReadWriteLockFromReadWriteLockFunction(getWrappedReadWriteLock()),
+                               wrappedLockFromLockFunction,
+                               getCurrentTimeTickSupplier(ANY_TIME_TICKS));
 
     assertThat(lock.asWriteLock())
         .isEqualTo(wrappedLock);
