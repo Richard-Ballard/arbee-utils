@@ -30,73 +30,67 @@ import static org.mockito.Mockito.*;
 @Test
 public class WrappedReadWriteLockTest {
 
-    private static final Lock ANY_LOCK = getLock();
+  private static final Lock ANY_LOCK = getLock();
 
-    @NotNull
-    private static Lock getLock() {
-        return mock(Lock.class);
-    }
+  private static @NotNull Lock getLock() {
+    return mock(Lock.class);
+  }
 
-    @NotNull
-    private ReadWriteLock getDelegate(@NotNull final Lock readLock,
-                                      @NotNull final Lock writeLock) {
-        assert readLock != null;
-        assert writeLock != null;
+  private @NotNull ReadWriteLock getDelegate(final @NotNull Lock readLock,
+                                             final @NotNull Lock writeLock) {
 
-        final ReadWriteLock readWriteLock = mock(ReadWriteLock.class);
+    final ReadWriteLock readWriteLock = mock(ReadWriteLock.class);
 
-        when(readWriteLock.readLock())
-                .thenReturn(readLock);
+    when(readWriteLock.readLock())
+        .thenReturn(readLock);
 
-        when(readWriteLock.writeLock())
-                .thenReturn(writeLock);
+    when(readWriteLock.writeLock())
+        .thenReturn(writeLock);
 
-        return readWriteLock;
-    }
+    return readWriteLock;
+  }
 
-    @NotNull
-    private Function<Lock, WrappedLock> getWrappedLockFromLockFunction(@NotNull final WrappedLock wrappedLock) {
+  private @NotNull Function<Lock, WrappedLock> getWrappedLockFromLockFunction(final @NotNull WrappedLock wrappedLock) {
 
-        return MoreMockUtils.mockFunctionSingleAnswer(Lock.class,
-                                                      wrappedLock);
-    }
+    return MoreMockUtils.mockFunctionSingleAnswer(Lock.class,
+                                                  wrappedLock);
+  }
 
-    @NotNull
-    private WrappedLock getWrappedLock() {
-        return mock(WrappedLock.class);
-    }
+  private @NotNull WrappedLock getWrappedLock() {
+    return mock(WrappedLock.class);
+  }
 
-    public void readLockWrapsDelegate() {
+  public void readLockWrapsDelegate() {
 
-        final WrappedLock wrappedLock = getWrappedLock();
+    final WrappedLock wrappedLock = getWrappedLock();
 
-        final Function<Lock, WrappedLock> wrappedLockFromLockFunction = getWrappedLockFromLockFunction(wrappedLock);
+    final Function<Lock, WrappedLock> wrappedLockFromLockFunction = getWrappedLockFromLockFunction(wrappedLock);
 
-        final Lock readLock = getLock();
-        final WrappedReadWriteLock wrappedReadWriteLock = new WrappedReadWriteLock(getDelegate(readLock,
-                                                                                               ANY_LOCK),
-                                                                                   wrappedLockFromLockFunction);
+    final Lock readLock = getLock();
+    final WrappedReadWriteLock wrappedReadWriteLock = new WrappedReadWriteLock(getDelegate(readLock,
+                                                                                           ANY_LOCK),
+                                                                               wrappedLockFromLockFunction);
 
-        assertThat(wrappedReadWriteLock.readLock())
-                .isEqualTo(wrappedLock);
+    assertThat(wrappedReadWriteLock.readLock())
+        .isEqualTo(wrappedLock);
 
-        verify(wrappedLockFromLockFunction).apply(readLock);
-    }
+    verify(wrappedLockFromLockFunction).apply(readLock);
+  }
 
-    public void writeLockWrapsDelegate() {
+  public void writeLockWrapsDelegate() {
 
-        final WrappedLock wrappedLock = getWrappedLock();
+    final WrappedLock wrappedLock = getWrappedLock();
 
-        final Function<Lock, WrappedLock> wrappedLockFromLockFunction = getWrappedLockFromLockFunction(wrappedLock);
+    final Function<Lock, WrappedLock> wrappedLockFromLockFunction = getWrappedLockFromLockFunction(wrappedLock);
 
-        final Lock writeLock = getLock();
-        final WrappedReadWriteLock wrappedReadWriteLock = new WrappedReadWriteLock(getDelegate(ANY_LOCK,
-                                                                                               writeLock),
-                                                                                   wrappedLockFromLockFunction);
+    final Lock writeLock = getLock();
+    final WrappedReadWriteLock wrappedReadWriteLock = new WrappedReadWriteLock(getDelegate(ANY_LOCK,
+                                                                                           writeLock),
+                                                                               wrappedLockFromLockFunction);
 
-        assertThat(wrappedReadWriteLock.writeLock())
-                .isEqualTo(wrappedLock);
+    assertThat(wrappedReadWriteLock.writeLock())
+        .isEqualTo(wrappedLock);
 
-        verify(wrappedLockFromLockFunction).apply(writeLock);
-    }
+    verify(wrappedLockFromLockFunction).apply(writeLock);
+  }
 }

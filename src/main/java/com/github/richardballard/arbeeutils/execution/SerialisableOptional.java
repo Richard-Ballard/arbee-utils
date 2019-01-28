@@ -104,161 +104,151 @@ import java.util.Optional;
  * @param <T>
  *            the type of the wrapped value
  */
+@SuppressWarnings({"SerializableDeserializableClassInSecureContext", "WeakerAccess"})
 @Immutable
 public class SerialisableOptional <T extends Serializable> implements Serializable {
 
-    // ATTRIBUTES
+  // ATTRIBUTES
 
-    private static final long serialVersionUID = -652697447004597911L;
+  private static final long serialVersionUID = -652697447004597911L;
 
-    /**
-     * The wrapped {@link Optional}. Note that this field is transient so it will not be (de)serialised automatically.
-     */
-    @SuppressWarnings("NonSerializableFieldInSerializableClass")
-    @NotNull
-    private final Optional<T> optional;
+  /**
+   * The wrapped {@link Optional}. Note that this field is transient so it will not be (de)serialised automatically.
+   */
+  private final @NotNull Optional<T> optional;
 
-    // CONSTRUCTION AND TRANSFORMATION
+  // CONSTRUCTION AND TRANSFORMATION
 
-    private SerialisableOptional(@NotNull final Optional<T> optional) {
-        Preconditions.checkNotNull(optional,
-                                   "The argument 'optional' must not be null.");
+  private SerialisableOptional(final @NotNull Optional<T> optional) {
+    Preconditions.checkNotNull(optional,
+                               "The argument 'optional' must not be null.");
 
-        this.optional = optional;
+    this.optional = optional;
+  }
+
+  /**
+   * Creates a serialisable optional from the specified optional.
+   *
+   * @param <T>
+   *            the type of the wrapped value
+   * @param optional
+   *            the {@link Optional} from which the serialisable wrapper will be created
+   * @return an instance which wraps the specified optional
+   */
+  public static @NotNull <T extends Serializable> SerialisableOptional<T> fromOptional(
+      final @NotNull Optional<T> optional) {
+
+    return new SerialisableOptional<>(optional);
+  }
+
+  /**
+   * Creates a serialisable optional which wraps an empty optional.
+   *
+   * @param <T>
+   *            the type of the non-existent value
+   * @return an instance which wraps an {@link Optional#empty() empty} {@link Optional}
+   * @see Optional#of(Object)
+   */
+  public static @NotNull <T extends Serializable> SerialisableOptional<T> empty() {
+    return new SerialisableOptional<>(Optional.empty());
+  }
+
+  /**
+   * Creates a serialisable optional for the specified, non-null value by wrapping it in an {@link Optional}.
+   *
+   * @param <T>
+   *            the type of the wrapped value
+   * @param value
+   *            the value which will be contained in the wrapped {@link Optional}; must not be null
+   * @return an instance which wraps the an optional for the specified value
+   * @throws NullPointerException
+   *             if value is null
+   * @see Optional#of(Object)
+   */
+  @SuppressWarnings("ProhibitedExceptionDeclared")
+  public static @NotNull <T extends Serializable> SerialisableOptional<T> of(final @NotNull T value) throws NullPointerException {
+    Objects.requireNonNull(value);
+
+    return new SerialisableOptional<>(Optional.of(value));
+  }
+
+  /**
+   * Creates a serialisable optional for the specified, possibly null value by wrapping it in an {@link Optional}.
+   *
+   * @param <T>
+   *            the type of the wrapped value
+   * @param value
+   *            the value which will be contained in the wrapped {@link Optional}; may be null
+   * @return an instance which wraps the an optional for the specified value
+   * @see Optional#ofNullable(Object)
+   */
+  public static @NotNull <T extends Serializable> SerialisableOptional<T> ofNullable(final @Nullable T value) {
+    return new SerialisableOptional<>(Optional.ofNullable(value));
+  }
+
+  /**
+   * Returns the {@code Optional} instance with which this instance was created.
+   *
+   * @return this instance as an {@link Optional}
+   */
+  public @NotNull Optional<T> asOptional() {
+    return optional;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if(this == o) {
+      return true;
+    }
+    if(o == null || getClass() != o.getClass()) {
+      return false;
     }
 
-    /**
-     * Creates a serialisable optional from the specified optional.
-     *
-     * @param <T>
-     *            the type of the wrapped value
-     * @param optional
-     *            the {@link Optional} from which the serialisable wrapper will be created
-     * @return an instance which wraps the specified optional
-     */
-    @NotNull
-    public static <T extends Serializable> SerialisableOptional<T> fromOptional(@NotNull final Optional<T> optional) {
-        assert optional != null;
+    final SerialisableOptional<?> that = (SerialisableOptional<?>) o;
 
-        return new SerialisableOptional<>(optional);
+    return optional.equals(that.optional);
+  }
+
+  @Override
+  public int hashCode() {
+    return optional.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return "SerialisableOptional{" +
+           "optional=" + optional +
+           '}';
+  }
+
+  // SERIALIZATION
+
+  protected @NotNull Object writeReplace() {
+    return new SerialisationProxy<>(this);
+  }
+
+  @SuppressWarnings("OverlyBroadThrowsClause")
+  private void readObject(final @NotNull ObjectInputStream in) throws IOException, ClassNotFoundException {
+    throw new InvalidObjectException("Serialisation proxy expected.");
+  }
+
+  @Immutable
+  private static class SerialisationProxy<T extends Serializable> implements Serializable {
+
+    private static final long serialVersionUID = -1326520485869949065L;
+
+    private final @Nullable T value;
+
+    public SerialisationProxy(final @NotNull SerialisableOptional<T> serialisableOptional) {
+
+      value = serialisableOptional.asOptional().orElse(null);
     }
 
-    /**
-     * Creates a serialisable optional which wraps an empty optional.
-     *
-     * @param <T>
-     *            the type of the non-existent value
-     * @return an instance which wraps an {@link Optional#empty() empty} {@link Optional}
-     * @see Optional#of(Object)
-     */
-    @NotNull
-    public static <T extends Serializable> SerialisableOptional<T> empty() {
-        return new SerialisableOptional<>(Optional.empty());
+    private @NotNull Object readResolve() {
+      return ofNullable(value);
     }
 
-    /**
-     * Creates a serialisable optional for the specified, non-null value by wrapping it in an {@link Optional}.
-     *
-     * @param <T>
-     *            the type of the wrapped value
-     * @param value
-     *            the value which will be contained in the wrapped {@link Optional}; must not be null
-     * @return an instance which wraps the an optional for the specified value
-     * @throws NullPointerException
-     *             if value is null
-     * @see Optional#of(Object)
-     */
-    @SuppressWarnings("ProhibitedExceptionDeclared")
-    @NotNull
-    public static <T extends Serializable> SerialisableOptional<T> of(@NotNull final T value) throws NullPointerException {
-        Objects.requireNonNull(value);
-
-        return new SerialisableOptional<>(Optional.of(value));
-    }
-
-    /**
-     * Creates a serialisable optional for the specified, possibly null value by wrapping it in an {@link Optional}.
-     *
-     * @param <T>
-     *            the type of the wrapped value
-     * @param value
-     *            the value which will be contained in the wrapped {@link Optional}; may be null
-     * @return an instance which wraps the an optional for the specified value
-     * @see Optional#ofNullable(Object)
-     */
-    @NotNull
-    public static <T extends Serializable> SerialisableOptional<T> ofNullable(@Nullable final T value) {
-        return new SerialisableOptional<>(Optional.ofNullable(value));
-    }
-
-    /**
-     * Returns the {@code Optional} instance with which this instance was created.
-     *
-     * @return this instance as an {@link Optional}
-     */
-    @NotNull
-    public Optional<T> asOptional() {
-        return optional;
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if(this == o) {
-            return true;
-        }
-        if(o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        final SerialisableOptional<?> that = (SerialisableOptional<?>) o;
-
-        return optional.equals(that.optional);
-    }
-
-    @Override
-    public int hashCode() {
-        return optional.hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return "SerialisableOptional{" +
-               "optional=" + optional +
-               '}';
-    }
-
-    // SERIALIZATION
-
-    @NotNull
-    protected Object writeReplace() {
-        return new SerialisationProxy<>(this);
-    }
-
-    @SuppressWarnings("OverlyBroadThrowsClause")
-    private void readObject(@NotNull final ObjectInputStream in) throws IOException, ClassNotFoundException {
-        throw new InvalidObjectException("Serialisation proxy expected.");
-    }
-
-    @Immutable
-    private static class SerialisationProxy<T extends Serializable> implements Serializable {
-
-        private static final long serialVersionUID = -1326520485869949065L;
-
-        @Nullable
-        private final T value;
-
-        public SerialisationProxy(@NotNull final SerialisableOptional<T> serialisableOptional) {
-            assert serialisableOptional != null;
-
-            value = serialisableOptional.asOptional().orElse(null);
-        }
-
-        @Nullable
-        private Object readResolve() {
-            return ofNullable(value);
-        }
-
-    }
+  }
 
 }
 

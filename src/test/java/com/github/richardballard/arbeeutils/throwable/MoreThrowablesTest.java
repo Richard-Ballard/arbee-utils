@@ -25,15 +25,15 @@ import static org.mockito.Mockito.mock;
 
 @Test
 public class MoreThrowablesTest {
-    public void asRuntimeExceptionReturnsUnwrapped() {
-        final UnsupportedOperationException exc = mock(UnsupportedOperationException.class);
-        assertThat(MoreThrowables.asRuntimeException(exc))
-                .isSameAs(exc);
-    }
+  public void asRuntimeExceptionReturnsUnwrapped() {
+    final UnsupportedOperationException exc = mock(UnsupportedOperationException.class);
+    assertThat(MoreThrowables.asRuntimeException(exc))
+        .isSameAs(exc);
+  }
 
-    public void asRuntimeExceptionReturnsWrapped() {
-        final FileNotFoundException exc = mock(FileNotFoundException.class);
-        assertThat(MoreThrowables.asRuntimeException(exc).getCause())
-                .isSameAs(exc);
-    }
+  public void asRuntimeExceptionReturnsWrapped() {
+    final FileNotFoundException exc = mock(FileNotFoundException.class);
+    assertThat(MoreThrowables.asRuntimeException(exc).getCause())
+        .isSameAs(exc);
+  }
 }

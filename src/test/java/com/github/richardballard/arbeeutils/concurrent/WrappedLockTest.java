@@ -32,78 +32,77 @@ import static org.mockito.Mockito.*;
 public class WrappedLockTest {
 
 
-    @NotNull
-    private Lock getDelegate() {
-        return mock(Lock.class);
-    }
+  private @NotNull Lock getDelegate() {
+    return mock(Lock.class);
+  }
 
-    public void inLockSupplierLocks() {
-        final Lock delegate = getDelegate();
+  public void inLockSupplierLocks() {
+    final Lock delegate = getDelegate();
 
-        final WrappedLock lock = new WrappedLock(delegate);
+    final WrappedLock lock = new WrappedLock(delegate);
 
-        final String value = "value";
+    final String value = "value";
 
-        final String actual = lock.inLock(() -> {
-            verify(delegate).lock();
+    final String actual = lock.inLock(() -> {
+      verify(delegate).lock();
 
-            return value;
-        });
+      return value;
+    });
 
-        assertThat(actual)
-                .isEqualTo(value);
-    }
+    assertThat(actual)
+        .isEqualTo(value);
+  }
 
-    public void inLockSupplierUnlocks() {
-        final Lock delegate = getDelegate();
+  public void inLockSupplierUnlocks() {
+    final Lock delegate = getDelegate();
 
-        final WrappedLock lock = new WrappedLock(delegate);
+    final WrappedLock lock = new WrappedLock(delegate);
 
-        final String value = "value";
-        final String actual = lock.inLock(() -> value);
+    final String value = "value";
+    final String actual = lock.inLock(() -> value);
 
-        verify(delegate).unlock();
+    verify(delegate).unlock();
 
-        assertThat(actual)
-                .isEqualTo(value);
-    }
+    assertThat(actual)
+        .isEqualTo(value);
+  }
 
-    public void inLockSupplierUnlocksWhenException() {
-        final Lock delegate = getDelegate();
+  public void inLockSupplierUnlocksWhenException() {
+    final Lock delegate = getDelegate();
 
-        final RuntimeException exc = new RuntimeException("test");
+    final RuntimeException exc = new RuntimeException("test");
 
-        final Supplier<String> supplier = () -> {
-            throw exc;
-        };
+    final Supplier<String> supplier = () -> {
+      //noinspection ProhibitedExceptionThrown
+      throw exc;
+    };
 
-        assertThatThrownBy(() -> new WrappedLock(delegate).inLock(supplier))
-                .isEqualTo(exc);
+    assertThatThrownBy(() -> new WrappedLock(delegate).inLock(supplier))
+        .isEqualTo(exc);
 
-        verify(delegate).unlock();
-    }
+    verify(delegate).unlock();
+  }
 
-    @SuppressWarnings("unchecked")
-    @NotNull
-    private Supplier<String> getSupplier() {
-        return mock(Supplier.class);
-    }
+  @SuppressWarnings("unchecked")
+  private @NotNull Supplier<String> getSupplier() {
+    return mock(Supplier.class);
+  }
 
-    public void inLockSupplierTimeoutDoesntCallOperationOrUnlock() throws InterruptedException {
-        final Duration timeout = Duration.ofDays(123L);
+  public void inLockSupplierTimeoutDoesntCallOperationOrUnlock() throws InterruptedException {
+    final Duration timeout = Duration.ofDays(123L);
 
-        final Lock delegate = getDelegate();
-        when(delegate.tryLock(timeout.toNanos(),
-                              TimeUnit.NANOSECONDS))
-                .thenReturn(false);
+    final Lock delegate = getDelegate();
+    when(delegate.tryLock(timeout.toNanos(),
+                          TimeUnit.NANOSECONDS))
+        .thenReturn(false);
 
 
-        final Supplier<String> supplier = getSupplier();
-        assertThatThrownBy(() -> new WrappedLock(delegate).inLock(supplier,
-                                                                  timeout))
-                .isInstanceOf(AcquireTimeoutException.class);
+    final Supplier<String> supplier = getSupplier();
+    assertThatThrownBy(() -> new WrappedLock(delegate).inLock(supplier,
+                                                              timeout))
+        .isInstanceOf(AcquireTimeoutException.class);
 
-        verify(supplier, never()).get();
-        verify(delegate, never()).unlock();
-    }
+    verify(supplier, never()).get();
+    verify(delegate, never()).unlock();
+  }
 }

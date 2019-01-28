@@ -30,127 +30,127 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Test
 public class GateBarrierTest {
 
-    public void openSetsState() {
-        final GateBarrier barrier = new GateBarrier(GateBarrier.State.CLOSED);
+  public void openSetsState() {
+    final GateBarrier barrier = new GateBarrier(GateBarrier.State.CLOSED);
 
-        assertThat(barrier.getState())
-                .isEqualTo(GateBarrier.State.CLOSED);
+    assertThat(barrier.getState())
+        .isEqualTo(GateBarrier.State.CLOSED);
 
-        barrier.open();
+    barrier.open();
 
-        assertThat(barrier.getState())
-                .isEqualTo(GateBarrier.State.OPEN);
-    }
+    assertThat(barrier.getState())
+        .isEqualTo(GateBarrier.State.OPEN);
+  }
 
-    public void closeSetsState() {
-        final GateBarrier barrier = new GateBarrier(GateBarrier.State.OPEN);
+  public void closeSetsState() {
+    final GateBarrier barrier = new GateBarrier(GateBarrier.State.OPEN);
 
-        assertThat(barrier.getState())
-                .isEqualTo(GateBarrier.State.OPEN);
+    assertThat(barrier.getState())
+        .isEqualTo(GateBarrier.State.OPEN);
 
-        barrier.close();
+    barrier.close();
 
-        assertThat(barrier.getState())
-                .isEqualTo(GateBarrier.State.CLOSED);
-    }
+    assertThat(barrier.getState())
+        .isEqualTo(GateBarrier.State.CLOSED);
+  }
 
-    public void awaitOpenNoTimeoutDoesntWaitIfOpen() {
-        final GateBarrier barrier = new GateBarrier(GateBarrier.State.OPEN);
+  public void awaitOpenNoTimeoutDoesntWaitIfOpen() {
+    final GateBarrier barrier = new GateBarrier(GateBarrier.State.OPEN);
 
-        // this will block forever if our test fails
-        barrier.awaitOpen();
-    }
+    // this will block forever if our test fails
+    barrier.awaitOpen();
+  }
 
-    public void awaitOpenNoTimeoutWaits() {
-        final GateBarrier barrier = new GateBarrier(GateBarrier.State.CLOSED);
+  public void awaitOpenNoTimeoutWaits() {
+    final GateBarrier barrier = new GateBarrier(GateBarrier.State.CLOSED);
 
-        final Supplier<TimeTick> timeTickSupplier = TimeTicks.systemCurrentTimeTickSupplier();
+    final Supplier<TimeTick> timeTickSupplier = TimeTicks.systemCurrentTimeTickSupplier();
 
-        final TimeTick startTick = timeTickSupplier.get();
+    final TimeTick startTick = timeTickSupplier.get();
 
-        final Duration sleepDuration = Duration.ofMillis(100L);
+    final Duration sleepDuration = Duration.ofMillis(100L);
 
-        Executors.newSingleThreadExecutor().submit(() -> {
-            StandardThreadOperations.INSTANCE.sleep(sleepDuration);
+    Executors.newSingleThreadExecutor().submit(() -> {
+      StandardThreadOperations.INSTANCE.sleep(sleepDuration);
 
-            assertThat(barrier.getState())
-                    .isEqualTo(GateBarrier.State.CLOSED);
+      assertThat(barrier.getState())
+          .isEqualTo(GateBarrier.State.CLOSED);
 
-            barrier.open();
-        });
+      barrier.open();
+    });
 
-        barrier.awaitOpen();
+    barrier.awaitOpen();
 
-        // make sure that the time it took to get here was because of the sleeping thread that opened it
-        final TimeTick endTick = timeTickSupplier.get();
+    // make sure that the time it took to get here was because of the sleeping thread that opened it
+    final TimeTick endTick = timeTickSupplier.get();
 
-        assertThat(endTick.durationSince(startTick))
-                .isGreaterThanOrEqualTo(sleepDuration);
-    }
+    assertThat(endTick.durationSince(startTick))
+        .isGreaterThanOrEqualTo(sleepDuration);
+  }
 
-    public void awaitOpenTimeBoundTimesOut() {
-        final GateBarrier barrier = new GateBarrier(GateBarrier.State.CLOSED);
+  public void awaitOpenTimeBoundTimesOut() {
+    final GateBarrier barrier = new GateBarrier(GateBarrier.State.CLOSED);
 
-        final Supplier<TimeTick> timeTickSupplier = TimeTicks.systemCurrentTimeTickSupplier();
+    final Supplier<TimeTick> timeTickSupplier = TimeTicks.systemCurrentTimeTickSupplier();
 
-        final TimeTick startTick = timeTickSupplier.get();
+    final TimeTick startTick = timeTickSupplier.get();
 
-        final Duration timeout = Duration.ofMillis(100L);
-        assertThat(barrier.awaitOpen(timeout))
-                .isEqualTo(GateBarrier.TimeBoundOpenResult.TIME_OUT);
+    final Duration timeout = Duration.ofMillis(100L);
+    assertThat(barrier.awaitOpen(timeout))
+        .isEqualTo(GateBarrier.TimeBoundOpenResult.TIME_OUT);
 
-        final TimeTick endTick = timeTickSupplier.get();
+    final TimeTick endTick = timeTickSupplier.get();
 
-        assertThat(endTick.durationSince(startTick))
-                .isGreaterThanOrEqualTo(timeout);
-    }
+    assertThat(endTick.durationSince(startTick))
+        .isGreaterThanOrEqualTo(timeout);
+  }
 
-    public void awaitOpenTimeBoundBeatsTimeout() throws InterruptedException {
-        final GateBarrier barrier = new GateBarrier(GateBarrier.State.CLOSED);
+  public void awaitOpenTimeBoundBeatsTimeout() {
+    final GateBarrier barrier = new GateBarrier(GateBarrier.State.CLOSED);
 
-        final Supplier<TimeTick> timeTickSupplier = TimeTicks.systemCurrentTimeTickSupplier();
+    final Supplier<TimeTick> timeTickSupplier = TimeTicks.systemCurrentTimeTickSupplier();
 
-        final TimeTick startTick = timeTickSupplier.get();
+    final TimeTick startTick = timeTickSupplier.get();
 
-        final Duration timeout = Duration.ofMillis(700L);
+    final Duration timeout = Duration.ofMillis(700L);
 
-        Executors.newSingleThreadExecutor().submit(() -> {
-            assertThat(barrier.getState())
-                    .isEqualTo(GateBarrier.State.CLOSED);
+    Executors.newSingleThreadExecutor().submit(() -> {
+      assertThat(barrier.getState())
+          .isEqualTo(GateBarrier.State.CLOSED);
 
-            barrier.open();
-        });
+      barrier.open();
+    });
 
-        assertThat(barrier.awaitOpen(timeout))
-                .isEqualTo(GateBarrier.TimeBoundOpenResult.OPEN);
+    assertThat(barrier.awaitOpen(timeout))
+        .isEqualTo(GateBarrier.TimeBoundOpenResult.OPEN);
 
-        final TimeTick endTick = timeTickSupplier.get();
+    final TimeTick endTick = timeTickSupplier.get();
 
-        assertThat(endTick.durationSince(startTick))
-                .isLessThanOrEqualTo(timeout);
-    }
+    assertThat(endTick.durationSince(startTick))
+        .isLessThanOrEqualTo(timeout);
+  }
 
-    public void gateMayBeReclosed() {
-        final GateBarrier barrier = new GateBarrier(GateBarrier.State.OPEN);
+  public void gateMayBeReclosed() {
+    final GateBarrier barrier = new GateBarrier(GateBarrier.State.OPEN);
 
-        assertThat(barrier.getState())
-                .isEqualTo(GateBarrier.State.OPEN);
+    assertThat(barrier.getState())
+        .isEqualTo(GateBarrier.State.OPEN);
 
-        barrier.close();
+    barrier.close();
 
-        assertThat(barrier.getState())
-                .isEqualTo(GateBarrier.State.CLOSED);
+    assertThat(barrier.getState())
+        .isEqualTo(GateBarrier.State.CLOSED);
 
-        barrier.open();
+    barrier.open();
 
-        assertThat(barrier.getState())
-                .isEqualTo(GateBarrier.State.OPEN);
+    assertThat(barrier.getState())
+        .isEqualTo(GateBarrier.State.OPEN);
 
-        barrier.close();
+    barrier.close();
 
-        assertThat(barrier.getState())
-                .isEqualTo(GateBarrier.State.CLOSED);
+    assertThat(barrier.getState())
+        .isEqualTo(GateBarrier.State.CLOSED);
 
 
-    }
+  }
 }

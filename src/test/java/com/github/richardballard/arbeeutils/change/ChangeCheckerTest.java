@@ -33,8 +33,9 @@ public class ChangeCheckerTest {
     private static final Optional<String> A_VALUE = Optional.of("a");
     private static final Optional<String> B_VALUE = Optional.of("b");
 
-    @NotNull
-    private Supplier<Optional<String>> getValueSupplier(@NotNull final ImmutableList<Optional<String>> values) {
+    private @NotNull Supplier<Optional<String>> getValueSupplier(
+        final @NotNull ImmutableList<Optional<String>> values) {
+
         return MoreMockUtils.mockSupplierMultipleAnswers(values);
     }
 

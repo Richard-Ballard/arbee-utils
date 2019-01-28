@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
  * calls one of the {@code awaitOpen} methods it will wait until another thread opens the gate.  A gate may be closed
  * and opened any number of times.
  */
+@SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
 @ThreadSafe
 public class GateBarrier {
 
@@ -36,17 +37,13 @@ public class GateBarrier {
         CLOSED
     }
 
-    @NotNull
-    private State state;
+    private @NotNull State state;
 
-    @NotNull
-    private final Monitor monitor;
+    private final @NotNull Monitor monitor;
 
-    @NotNull
-    private final Monitor.Guard isOpenGuard;
+    private final @NotNull Monitor.Guard isOpenGuard;
 
-    public GateBarrier(@NotNull final State initialState) {
-        assert initialState != null;
+    public GateBarrier(final @NotNull State initialState) {
 
         this.state = initialState;
 
@@ -62,8 +59,7 @@ public class GateBarrier {
     /**
      * This returns the current state.  Note that the state may have changed at any point after calling this method.
      */
-    @NotNull
-    public State getState() {
+    public @NotNull State getState() {
         monitor.enter();
         try {
             return state;
@@ -73,8 +69,7 @@ public class GateBarrier {
         }
     }
 
-    @NotNull
-    public GateBarrier open() {
+    public @NotNull GateBarrier open() {
         monitor.enter();
         try {
             state = State.OPEN;
@@ -86,8 +81,7 @@ public class GateBarrier {
         return this;
     }
 
-    @NotNull
-    public GateBarrier close() {
+    public @NotNull GateBarrier close() {
         monitor.enter();
         try {
             state = State.CLOSED;
@@ -109,9 +103,7 @@ public class GateBarrier {
         TIME_OUT
     }
 
-    @NotNull
-    public TimeBoundOpenResult awaitOpen(@NotNull final Duration timeOut) {
-        assert timeOut != null;
+    public @NotNull TimeBoundOpenResult awaitOpen(final @NotNull Duration timeOut) {
 
         final TimeBoundOpenResult result;
         if(monitor.enterWhenUninterruptibly(isOpenGuard,

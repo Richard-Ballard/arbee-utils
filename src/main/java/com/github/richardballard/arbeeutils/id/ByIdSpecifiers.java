@@ -24,85 +24,74 @@ import org.jetbrains.annotations.NotNull;
 /**
  * This class has static methods for obtaining the various flavours of {@link ByIdSpecifier}.
  */
+@SuppressWarnings("StaticMethodOnlyUsedInOneClass")
 @Immutable
 public enum ByIdSpecifiers {
-    ;
+  ;
 
-    private static final ByIdSpecifier<Object> EXCLUDE_NONE = new AllBasedByIdSpecifier<>(ImmutableSet.of());
-    private static final ByIdSpecifier<Object> INCLUDE_NONE = new NoneBasedByIdSpecifier<>(ImmutableSet.of());
+  private static final ByIdSpecifier<Object> EXCLUDE_NONE = new AllBasedByIdSpecifier<>(ImmutableSet.of());
+  private static final ByIdSpecifier<Object> INCLUDE_NONE = new NoneBasedByIdSpecifier<>(ImmutableSet.of());
 
 
-    /**
-     * @return an instance that excludes nothing (i.e. includes everything)
-     */
-    @SuppressWarnings("unchecked")
-    @NotNull
-    public static <T> ByIdSpecifier<T> excludeNone() {
-        return (ByIdSpecifier<T>)EXCLUDE_NONE;
-    }
+  /**
+   * @return an instance that excludes nothing (i.e. includes everything)
+   */
+  @SuppressWarnings("unchecked")
+  public static @NotNull <T> ByIdSpecifier<T> excludeNone() {
+    return (ByIdSpecifier<T>)EXCLUDE_NONE;
+  }
 
-    /**
-     * @return an instance that excludes everything (i.e. includes nothing)
-     */
-    @NotNull
-    public static <T> ByIdSpecifier<T> excludeAll() {
-        return includeNone();
-    }
+  /**
+   * @return an instance that excludes everything (i.e. includes nothing)
+   */
+  public static @NotNull <T> ByIdSpecifier<T> excludeAll() {
+    return includeNone();
+  }
 
-    /**
-     * @return an instance that excludes only the specified ids
-     */
-    @NotNull
-    public static <T> ByIdSpecifier<T> excludeOnly(@NotNull final Iterable<? extends T> exclusions) {
-        assert exclusions != null;
+  /**
+   * @return an instance that excludes only the specified ids
+   */
+  public static @NotNull <T> ByIdSpecifier<T> excludeOnly(final @NotNull Iterable<? extends T> exclusions) {
 
-        return new AllBasedByIdSpecifier<T>(ImmutableSet.copyOf(exclusions));
-    }
+    return new AllBasedByIdSpecifier<>(ImmutableSet.copyOf(exclusions));
+  }
 
-    /**
-     * @return an instance that excludes only the specified id
-     */
-    @NotNull
-    public static <T> ByIdSpecifier<T> excludeOnly(@NotNull final T exclusion) {
-        assert exclusion != null;
+  /**
+   * @return an instance that excludes only the specified id
+   */
+  public static @NotNull <T> ByIdSpecifier<T> excludeOnly(final @NotNull T exclusion) {
 
-        return new AllBasedByIdSpecifier<T>(ImmutableSet.of(exclusion));
-    }
+    return new AllBasedByIdSpecifier<>(ImmutableSet.of(exclusion));
+  }
 
-    /**
-     * @return an instance that includes nothing (i.e. excludes everything)
-     */
-    @SuppressWarnings("unchecked")
-    @NotNull
-    public static <T> ByIdSpecifier<T> includeNone() {
-        return (ByIdSpecifier<T>)INCLUDE_NONE;
-    }
+  /**
+   * @return an instance that includes nothing (i.e. excludes everything)
+   */
+  @SuppressWarnings("unchecked")
+  public static @NotNull <T> ByIdSpecifier<T> includeNone() {
+    return (ByIdSpecifier<T>)INCLUDE_NONE;
+  }
 
-    /**
-     * @return an instance that includes everything (i.e. excludes nothing)
-     */
-    @NotNull
-    public static <T> ByIdSpecifier<T> includeAll() {
-        return excludeNone();
-    }
+  /**
+   * @return an instance that includes everything (i.e. excludes nothing)
+   */
+  public static @NotNull <T> ByIdSpecifier<T> includeAll() {
+    return excludeNone();
+  }
 
-    /**
-     * @return an instance that includes only the specified ids
-     */
-    @NotNull
-    public static <T> ByIdSpecifier<T> includeOnly(@NotNull final Iterable<? extends T> inclusions) {
-        assert inclusions != null;
+  /**
+   * @return an instance that includes only the specified ids
+   */
+  public static @NotNull <T> ByIdSpecifier<T> includeOnly(final @NotNull Iterable<? extends T> inclusions) {
 
-        return new NoneBasedByIdSpecifier<T>(ImmutableSet.copyOf(inclusions));
-    }
+    return new NoneBasedByIdSpecifier<>(ImmutableSet.copyOf(inclusions));
+  }
 
-    /**
-     * @return an instance that includes only the specified id
-     */
-    @NotNull
-    public static <T> ByIdSpecifier<T> includeOnly(@NotNull final T inclusion) {
-        assert inclusion != null;
+  /**
+   * @return an instance that includes only the specified id
+   */
+  public static @NotNull <T> ByIdSpecifier<T> includeOnly(final @NotNull T inclusion) {
 
-        return new NoneBasedByIdSpecifier<T>(ImmutableSet.of(inclusion));
-    }
+    return new NoneBasedByIdSpecifier<>(ImmutableSet.of(inclusion));
+  }
 }

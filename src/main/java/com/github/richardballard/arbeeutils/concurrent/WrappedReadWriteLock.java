@@ -28,37 +28,30 @@ import java.util.function.Function;
  * This class is a simple wrapper around an instance of {@link ReadWriteLock} that allows you to call the more common
  * methods in a functional manner.
  */
+@SuppressWarnings("WeakerAccess")
 public class WrappedReadWriteLock {
 
-    @NotNull
-    private final ReadWriteLock delegate;
+  private final @NotNull ReadWriteLock delegate;
 
-    @NotNull
-    private final Function<? super Lock, ? extends WrappedLock> wrappedLockFromLockFunction;
+  private final @NotNull Function<? super Lock, ? extends WrappedLock> wrappedLockFromLockFunction;
 
-    WrappedReadWriteLock(@NotNull final ReadWriteLock delegate,
-                         @NotNull final Function<? super Lock, ? extends WrappedLock> wrappedLockFromLockFunction) {
-        assert delegate != null;
-        assert wrappedLockFromLockFunction != null;
+  WrappedReadWriteLock(final @NotNull ReadWriteLock delegate,
+                       final @NotNull Function<? super Lock, ? extends WrappedLock> wrappedLockFromLockFunction) {
 
-        this.delegate = delegate;
-        this.wrappedLockFromLockFunction = wrappedLockFromLockFunction;
-    }
+    this.delegate = delegate;
+    this.wrappedLockFromLockFunction = wrappedLockFromLockFunction;
+  }
 
-    public WrappedReadWriteLock(@NotNull final ReadWriteLock delegate) {
-        this(delegate,
-             WrappedLock::new);
+  public WrappedReadWriteLock(final @NotNull ReadWriteLock delegate) {
+    this(delegate,
+         WrappedLock::new);
+  }
 
-        assert delegate != null;
-    }
+  public @NotNull WrappedLock readLock() {
+    return Objects.requireNonNull(wrappedLockFromLockFunction.apply(delegate.readLock()));
+  }
 
-    @NotNull
-    public WrappedLock readLock() {
-        return Objects.requireNonNull(wrappedLockFromLockFunction.apply(delegate.readLock()));
-    }
-
-    @NotNull
-    public WrappedLock writeLock() {
-        return Objects.requireNonNull(wrappedLockFromLockFunction.apply(delegate.writeLock()));
-    }
+  public @NotNull WrappedLock writeLock() {
+    return Objects.requireNonNull(wrappedLockFromLockFunction.apply(delegate.writeLock()));
+  }
 }

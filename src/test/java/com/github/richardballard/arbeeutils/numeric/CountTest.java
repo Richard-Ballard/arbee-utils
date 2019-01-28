@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("SameParameterValue")
 @Test
 public class CountTest {
 
@@ -137,11 +138,8 @@ public class CountTest {
                 .isEqualTo(Count.ZERO);
     }
 
-    @NotNull
-    private BigNumber getBigNumber(@NotNull final BigInteger bigInteger,
-                                   @NotNull final BigDecimal bigDecimal) {
-        assert bigInteger != null;
-        assert bigDecimal != null;
+    private @NotNull BigNumber getBigNumber(final @NotNull BigInteger bigInteger,
+                                            final @NotNull BigDecimal bigDecimal) {
 
         final BigNumber bigNumber = mock(BigNumber.class);
 
@@ -170,9 +168,8 @@ public class CountTest {
 
     }
 
-    @NotNull
-    private Number getNumber(final long longValue,
-                             final double doubleValue) {
+    private @NotNull Number getNumber(final long longValue,
+                                      final double doubleValue) {
 
         final Number number = mock(Number.class);
 

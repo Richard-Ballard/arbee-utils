@@ -30,94 +30,89 @@ import java.util.function.Supplier;
  * which it initially loads the element, and from this point on the {@link #get()} method returns that stored element.
  * It has the {@link #invalidate()} method that forces a reload from the delegate on the next call to {@link #get()}.
  */
+@SuppressWarnings("WeakerAccess")
 @ThreadSafe
 public class RefreshableMemoisingSupplier<T> implements Supplier<T> {
 
-    @NotNull
-    private final Supplier<? extends T> delegate;
+  private final @NotNull Supplier<? extends T> delegate;
 
-    @NotNull
-    private final LongAdder counter;
+  private final @NotNull LongAdder counter;
 
-    @NotNull
-    private volatile Optional<LoadedElement<T>> loadedElement;
+  private volatile @NotNull Optional<LoadedElement<T>> loadedElement;
 
-    public RefreshableMemoisingSupplier(@NotNull final Supplier<? extends T> delegate) {
-        assert delegate != null;
+  public RefreshableMemoisingSupplier(final @NotNull Supplier<? extends T> delegate) {
 
-        this.delegate = delegate;
+    this.delegate = delegate;
 
-        this.counter = new LongAdder();
-        this.loadedElement = Optional.empty();
+    this.counter = new LongAdder();
+    this.loadedElement = Optional.empty();
+  }
+
+  /**
+   * Returns the memoised element, loading it if necessary.
+   */
+  @Override
+  public T get() {
+
+    // Take a snapshot of the counter.  This way if another thread increments the counter while we are loading from
+    // the delegate then the next time this method is called the counter will not match and so the memoised element
+    // will not be used - RMB 2016/06/17
+    final long counterSnapshot = counter.sum();
+
+    // if the counter is still the same as when the element was loaded
+    final Optional<T> optionalElement = loadedElement.filter(le -> le.getLoadedOnCount() == counterSnapshot)
+                                                     .map(LoadedElement::getElement);
+
+    final T element;
+    if(optionalElement.isPresent()) {
+      element = optionalElement.get();
+    }
+    else {
+      // load from the delegate
+      element = delegate.get();
+
+      loadedElement = Optional.of(new LoadedElement<>(element,
+                                                      counterSnapshot));
     }
 
-    /**
-     * Returns the memoised element, loading it if necessary.
-     */
-    @Override
-    public T get() {
+    return element;
+  }
 
-        // Take a snapshot of the counter.  This way if another thread increments the counter while we are loading from
-        // the delegate then the next time this method is called the counter will not match and so the memoised element
-        // will not be used - RMB 2016/06/17
-        final long counterSnapshot = counter.sum();
+  /**
+   * Invalidates any element that is memoised so that the next call to {@link #get()} will pull the element from
+   * the delegate.
+   */
+  public void invalidate() {
+    counter.increment();
+  }
 
-        // if the counter is still the same as when the element was loaded
-        final Optional<T> optionalElement = loadedElement.filter(le -> le.getLoadedOnCount() == counterSnapshot)
-                                                         .map(LoadedElement::getElement);
+  /**
+   * Convenience method that calls {@link #invalidate()} and then returns the result of {@link #get()}
+   */
+  public T refresh() {
+    invalidate();
+    return get();
+  }
 
-        final T element;
-        if(optionalElement.isPresent()) {
-            element = optionalElement.get();
-        }
-        else {
-            // load from the delegate
-            element = delegate.get();
+  @Immutable
+  private static class LoadedElement<T> {
+    private final @Nullable T element;
 
-            loadedElement = Optional.of(new LoadedElement<>(element,
-                                                            counterSnapshot));
-        }
+    private final long loadedOnCount;
 
-        return element;
+    public LoadedElement(final @Nullable T element,
+                         final long loadedOnCount) {
+
+      this.element = element;
+      this.loadedOnCount = loadedOnCount;
     }
 
-    /**
-     * Invalidates any element that is memoised so that the next call to {@link #get()} will pull the element from
-     * the delegate.
-     */
-    public void invalidate() {
-        counter.increment();
+    public @Nullable T getElement() {
+      return element;
     }
 
-    /**
-     * Convenience method that calls {@link #invalidate()} and then returns the result of {@link #get()}
-     */
-    public T refresh() {
-        invalidate();
-        return get();
+    public long getLoadedOnCount() {
+      return loadedOnCount;
     }
-
-    @Immutable
-    private static class LoadedElement<T> {
-        @Nullable
-        private final T element;
-
-        private final long loadedOnCount;
-
-        public LoadedElement(@Nullable final T element,
-                             final long loadedOnCount) {
-
-            this.element = element;
-            this.loadedOnCount = loadedOnCount;
-        }
-
-        @Nullable
-        public T getElement() {
-            return element;
-        }
-
-        public long getLoadedOnCount() {
-            return loadedOnCount;
-        }
-    }
+  }
 }

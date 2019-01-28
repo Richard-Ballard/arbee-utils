@@ -21,64 +21,59 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 @Immutable
 public class ChangedValue<T> {
-    @NotNull
-    private final Optional<T> previousValue;
+  private final @NotNull Optional<T> previousValue;
 
-    @NotNull
-    private final Optional<T> newValue;
+  private final @NotNull Optional<T> newValue;
 
-    public ChangedValue(@NotNull final Optional<T> previousValue,
-                        @NotNull final Optional<T> newValue) {
-        assert previousValue != null;
-        assert newValue != null;
+  public ChangedValue(final @NotNull Optional<T> previousValue,
+                      final @NotNull Optional<T> newValue) {
 
-        this.previousValue = previousValue;
-        this.newValue = newValue;
+    this.previousValue = previousValue;
+    this.newValue = newValue;
+  }
+
+  public @NotNull Optional<T> getPreviousValue() {
+    return previousValue;
+  }
+
+  public @NotNull Optional<T> getNewValue() {
+    return newValue;
+  }
+
+
+  @Override
+  public boolean equals(final Object o) {
+    if(this == o) {
+      return true;
+    }
+    if(o == null || getClass() != o.getClass()) {
+      return false;
     }
 
-    @NotNull
-    public Optional<T> getPreviousValue() {
-        return previousValue;
+    final ChangedValue<?> that = (ChangedValue<?>) o;
+
+    if(!previousValue.equals(that.previousValue)) {
+      return false;
     }
+    return newValue.equals(that.newValue);
 
-    @NotNull
-    public Optional<T> getNewValue() {
-        return newValue;
-    }
+  }
 
+  @Override
+  public int hashCode() {
+    int result = previousValue.hashCode();
+    result = 31 * result + newValue.hashCode();
+    return result;
+  }
 
-    @Override
-    public boolean equals(final Object o) {
-        if(this == o) {
-            return true;
-        }
-        if(o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        final ChangedValue<?> that = (ChangedValue<?>) o;
-
-        if(!previousValue.equals(that.previousValue)) {
-            return false;
-        }
-        return newValue.equals(that.newValue);
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = previousValue.hashCode();
-        result = 31 * result + newValue.hashCode();
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "ChangedValue{" +
-               "previousValue=" + previousValue +
-               ", newValue=" + newValue +
-               '}';
-    }
+  @Override
+  public String toString() {
+    return "ChangedValue{" +
+           "previousValue=" + previousValue +
+           ", newValue=" + newValue +
+           '}';
+  }
 }

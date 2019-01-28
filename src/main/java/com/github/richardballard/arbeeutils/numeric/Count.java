@@ -17,6 +17,7 @@
 package com.github.richardballard.arbeeutils.numeric;
 
 import com.github.richardballard.arbeecoretypes.numeric.BigNumber;
+import com.google.common.base.Preconditions;
 import net.jcip.annotations.Immutable;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,417 +30,348 @@ import java.math.RoundingMode;
  * there is an {@code onExceedBoundary} parameter which indicates what should happen if the result would be negative
  * (which doesn't make sense for a count).
  */
+@SuppressWarnings({"WeakerAccess", "unused"})
 @Immutable
-public class Count extends BigNumber {
+public final class Count extends BigNumber {
 
-    private static final long serialVersionUID = 8108782711353619422L;
+  private static final long serialVersionUID = 8108782711353619422L;
 
-    public static final Count ZERO = new Count(BigInteger.ZERO);
-    public static final Count MIN_VALUE = ZERO;
+  public static final Count ZERO = new Count(BigInteger.ZERO);
+  public static final Count MIN_VALUE = ZERO;
 
-    public enum OnExceedBoundary {
-        /**
-         * e.g. if the value is > MIN_VALUE then set to MIN_VALUE
-         */
-        USE_BOUNDARY_VALUE,
-
-        /**
-         * throw an exception
-         */
-        THROW
-    }
-
-    @NotNull
-    public static Count valueOf(@NotNull final BigInteger value,
-                                @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert value != null;
-        assert onExceedBoundary != null;
-
-        final Count result;
-
-        final int comparisonToZero = value.compareTo(BigInteger.ZERO);
-        if(comparisonToZero == 0) {
-            result = ZERO;
-        }
-        else if(comparisonToZero > 0) {
-            result = new Count(value);
-        }
-        else {
-            if(onExceedBoundary == OnExceedBoundary.THROW) {
-                throw new IllegalArgumentException("value must be >= 0, not " + value);
-            }
-            else if(onExceedBoundary == OnExceedBoundary.USE_BOUNDARY_VALUE) {
-                result = ZERO;
-            }
-            else {
-                throw new IllegalStateException("unknown onExceedBoundary - " + onExceedBoundary);
-            }
-        }
-
-        return result;
-    }
-
-    @NotNull
-    private static BigInteger asBigInteger(final @NotNull BigNumber value) {
-        assert value != null;
-
-        return value.bigIntegerValue();
-    }
-
-    @NotNull
-    private static BigInteger asBigInteger(final long value) {
-
-        return BigInteger.valueOf(value);
-    }
-
-    @NotNull
-    private static BigInteger asBigInteger(@NotNull final Number value) {
-        assert value != null;
-
-        return asBigInteger(value.longValue());
-    }
-
-
-    @NotNull
-    public static Count valueOf(final @NotNull BigNumber value,
-                                @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert value != null;
-        assert onExceedBoundary != null;
-
-        return valueOf(asBigInteger(value),
-                       onExceedBoundary);
-    }
-
-    @NotNull
-    public static Count valueOf(final long value,
-                                @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert onExceedBoundary != null;
-
-        return valueOf(asBigInteger(value),
-                       onExceedBoundary);
-    }
+  public enum OnExceedBoundary {
+    /**
+     * e.g. if the value is > MIN_VALUE then set to MIN_VALUE
+     */
+    USE_BOUNDARY_VALUE,
 
     /**
-     *
-     * @param value this will be truncated to an integral value (not rounded)
+     * throw an exception
      */
-    @NotNull
-    public static Count valueOf(@NotNull final Number value,
-                                @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert value != null;
-        assert onExceedBoundary != null;
+    THROW
+  }
 
-        return valueOf(asBigInteger(value),
-                       onExceedBoundary);
+  public static @NotNull Count valueOf(final @NotNull BigInteger value,
+                                       final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    final Count result;
+
+    final int comparisonToZero = value.compareTo(BigInteger.ZERO);
+    if(comparisonToZero == 0) {
+      result = ZERO;
+    }
+    else if(comparisonToZero > 0) {
+      result = new Count(value);
+    }
+    else {
+      if(onExceedBoundary == OnExceedBoundary.THROW) {
+        throw new IllegalArgumentException("value must be >= 0, not " + value);
+      }
+      else if(onExceedBoundary == OnExceedBoundary.USE_BOUNDARY_VALUE) {
+        result = ZERO;
+      }
+      else {
+        throw new IllegalStateException("unknown onExceedBoundary - " + onExceedBoundary);
+      }
     }
 
-    @NotNull
-    private final BigInteger value;
+    return result;
+  }
 
-    private Count(@NotNull final BigInteger value) {
-        assert value != null;
-        assert value.compareTo(BigInteger.ZERO) >= 0;
+  private static @NotNull BigInteger asBigInteger(final @NotNull BigNumber value) {
 
-        this.value = value;
-    }
+    return value.bigIntegerValue();
+  }
 
-    /**
-     *
-     * @return the value which will be >= 0
-     */
-    @NotNull
-    public BigInteger getValue() {
-        return value;
-    }
+  private static @NotNull BigInteger asBigInteger(final long value) {
 
-    @NotNull
-    @Override
-    public BigInteger bigIntegerValue() {
-        return value;
-    }
+    return BigInteger.valueOf(value);
+  }
 
-    @NotNull
-    @Override
-    public BigDecimal bigDecimalValue() {
-        return new BigDecimal(value);
-    }
+  private static @NotNull BigInteger asBigInteger(final @NotNull Number value) {
 
-    /**
-     *
-     * @return the value which will be >= 0 (cast to int)
-     */
-    @Override
-    public int intValue() {
-        return value.intValue();
-    }
+    return asBigInteger(value.longValue());
+  }
 
-    /**
-     *
-     * @return the value which will be >= 0
-     */
-    @Override
-    public long longValue() {
-        return value.longValue();
-    }
 
-    /**
-     *
-     * @return the value which will be >= 0 (cast to float)
-     */
-    @Override
-    public float floatValue() {
-        return value.floatValue();
-    }
+  public static @NotNull Count valueOf(final @NotNull BigNumber value,
+                                       final @NotNull OnExceedBoundary onExceedBoundary) {
 
-    /**
-     *
-     * @return the value which will be >= 0 (cast to double)
-     */
-    @Override
-    public double doubleValue() {
-        return value.doubleValue();
-    }
+    return valueOf(asBigInteger(value),
+                   onExceedBoundary);
+  }
 
-    @NotNull
-    public Count plus(@NotNull final BigInteger augend,
-                      @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert augend != null;
-        assert onExceedBoundary != null;
+  public static @NotNull Count valueOf(final long value,
+                                       final @NotNull OnExceedBoundary onExceedBoundary) {
 
-        return valueOf(value.add(augend),
-                       onExceedBoundary);
-    }
+    return valueOf(asBigInteger(value),
+                   onExceedBoundary);
+  }
 
-    @NotNull
-    public Count plus(final @NotNull BigNumber augend,
-                      @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert augend != null;
-        assert onExceedBoundary != null;
+  /**
+   *
+   * @param value this will be truncated to an integral value (not rounded)
+   */
+  public static @NotNull Count valueOf(final @NotNull Number value,
+                                       final @NotNull OnExceedBoundary onExceedBoundary) {
 
-        return plus(asBigInteger(augend),
-                    onExceedBoundary);
-    }
+    return valueOf(asBigInteger(value),
+                   onExceedBoundary);
+  }
 
-    @NotNull
-    public Count plus(final long augend,
-                      @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert onExceedBoundary != null;
+  private final @NotNull BigInteger value;
 
-        return plus(asBigInteger(augend),
-                    onExceedBoundary);
-    }
+  private Count(final @NotNull BigInteger value) {
 
-    /**
-     *
-     * @param augend this will be truncated to an integral value (not rounded)
-     */
-    @NotNull
-    public Count plus(@NotNull final Number augend,
-                      @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert augend != null;
-        assert onExceedBoundary != null;
+    Preconditions.checkArgument(value.compareTo(BigInteger.ZERO) >= 0);
 
-        return plus(asBigInteger(augend),
-                    onExceedBoundary);
-    }
+    this.value = value;
+  }
 
-    @NotNull
-    public Count minus(@NotNull final BigInteger subtrahend,
-                       @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert subtrahend != null;
-        assert onExceedBoundary != null;
+  /**
+   *
+   * @return the value which will be >= 0
+   */
+  public @NotNull BigInteger getValue() {
+    return value;
+  }
 
-        return valueOf(value.subtract(subtrahend),
-                       onExceedBoundary);
-    }
+  @Override
+  public @NotNull BigInteger bigIntegerValue() {
+    return value;
+  }
 
-    @NotNull
-    public Count minus(final @NotNull BigNumber subtrahend,
-                       @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert subtrahend != null;
-        assert onExceedBoundary != null;
+  @Override
+  public @NotNull BigDecimal bigDecimalValue() {
+    return new BigDecimal(value);
+  }
 
-        return minus(asBigInteger(subtrahend),
+  /**
+   *
+   * @return the value which will be >= 0 (cast to int)
+   */
+  @Override
+  public int intValue() {
+    return value.intValue();
+  }
+
+  /**
+   *
+   * @return the value which will be >= 0
+   */
+  @Override
+  public long longValue() {
+    return value.longValue();
+  }
+
+  /**
+   *
+   * @return the value which will be >= 0 (cast to float)
+   */
+  @Override
+  public float floatValue() {
+    return value.floatValue();
+  }
+
+  /**
+   *
+   * @return the value which will be >= 0 (cast to double)
+   */
+  @Override
+  public double doubleValue() {
+    return value.doubleValue();
+  }
+
+  public @NotNull Count plus(final @NotNull BigInteger augend,
+                             final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return valueOf(value.add(augend),
+                   onExceedBoundary);
+  }
+
+  public @NotNull Count plus(final @NotNull BigNumber augend,
+                             final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return plus(asBigInteger(augend),
+                onExceedBoundary);
+  }
+
+  public @NotNull Count plus(final long augend,
+                             final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return plus(asBigInteger(augend),
+                onExceedBoundary);
+  }
+
+  /**
+   *
+   * @param augend this will be truncated to an integral value (not rounded)
+   */
+  public @NotNull Count plus(final @NotNull Number augend,
+                             final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return plus(asBigInteger(augend),
+                onExceedBoundary);
+  }
+
+  public @NotNull Count minus(final @NotNull BigInteger subtrahend,
+                              final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return valueOf(value.subtract(subtrahend),
+                   onExceedBoundary);
+  }
+
+  public @NotNull Count minus(final @NotNull BigNumber subtrahend,
+                              final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return minus(asBigInteger(subtrahend),
+                 onExceedBoundary);
+  }
+
+  public @NotNull Count minus(final long augend,
+                              final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return minus(asBigInteger(augend),
+                 onExceedBoundary);
+  }
+
+  /**
+   *
+   * @param subtrahend this will be truncated to an integral value (not rounded)
+   */
+  public @NotNull Count minus(final @NotNull Number subtrahend,
+                              final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return minus(asBigInteger(subtrahend),
+                 onExceedBoundary);
+  }
+
+
+  /**
+   * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+   * truncated.
+   */
+  public @NotNull Count multipliedBy(final @NotNull BigDecimal multiplicand,
+                                     final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    final BigDecimal result = new BigDecimal(value).multiply(multiplicand);
+
+    return valueOf(result.toBigInteger(),
+                   onExceedBoundary);
+  }
+
+  public @NotNull Count multipliedBy(final @NotNull BigInteger multiplicand,
+                                     final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return valueOf(value.multiply(multiplicand),
+                   onExceedBoundary);
+  }
+
+  /**
+   * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+   * truncated.
+   */
+  public @NotNull Count multipliedBy(final @NotNull BigNumber multiplicand,
+                                     final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return multipliedBy(multiplicand.bigDecimalValue(),
+                        onExceedBoundary);
+  }
+
+  public @NotNull Count multipliedBy(final long multiplicand,
+                                     final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return multipliedBy(asBigInteger(multiplicand),
+                        onExceedBoundary);
+  }
+
+  /**
+   * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+   * truncated.
+   */
+  public @NotNull Count multipliedBy(final @NotNull Number multiplicand,
+                                     final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return multipliedBy(BigDecimal.valueOf(multiplicand.doubleValue()),
+                        onExceedBoundary);
+  }
+
+  /**
+   * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+   * truncated.
+   */
+  public @NotNull Count dividedBy(final @NotNull BigDecimal divisor,
+                                  final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    final BigDecimal result = new BigDecimal(value).divide(divisor,
+                                                           10,      // make sure there is plenty of room in the scale so that the integer component is not rounded
+                                                           RoundingMode.HALF_UP);
+
+    return valueOf(result.toBigInteger(),
+                   onExceedBoundary);
+  }
+
+  public @NotNull Count dividedBy(final @NotNull BigInteger divisor,
+                                  final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return valueOf(value.divide(divisor),
+                   onExceedBoundary);
+  }
+
+  /**
+   * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+   * truncated.
+   */
+  public @NotNull Count dividedBy(final @NotNull BigNumber divisor,
+                                  final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return dividedBy(divisor.bigDecimalValue(),
                      onExceedBoundary);
-    }
+  }
 
-    @NotNull
-    public Count minus(final long augend,
-                       @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert onExceedBoundary != null;
+  public @NotNull Count dividedBy(final long divisor,
+                                  final @NotNull OnExceedBoundary onExceedBoundary) {
 
-        return minus(asBigInteger(augend),
+    return dividedBy(asBigInteger(divisor),
                      onExceedBoundary);
+  }
+
+  /**
+   * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
+   * truncated.
+   */
+  public @NotNull Count dividedBy(final @NotNull Number divisor,
+                                  final @NotNull OnExceedBoundary onExceedBoundary) {
+
+    return multipliedBy(BigDecimal.valueOf(divisor.doubleValue()),
+                        onExceedBoundary);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if(this == o) {
+      return true;
+    }
+    if(o == null || getClass() != o.getClass()) {
+      return false;
     }
 
-    /**
-     *
-     * @param subtrahend this will be truncated to an integral value (not rounded)
-     */
-    @NotNull
-    public Count minus(@NotNull final Number subtrahend,
-                       @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert subtrahend != null;
-        assert onExceedBoundary != null;
+    final Count count = (Count) o;
 
-        return minus(asBigInteger(subtrahend),
-                     onExceedBoundary);
-    }
+    return value.equals(count.value);
 
+  }
 
-    /**
-     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
-     * truncated.
-     */
-    @NotNull
-    public Count multipliedBy(@NotNull final BigDecimal multiplicand,
-                              @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert multiplicand != null;
-        assert onExceedBoundary != null;
+  @Override
+  public int hashCode() {
+    return value.hashCode();
+  }
 
-        final BigDecimal result = new BigDecimal(value).multiply(multiplicand);
-
-        return valueOf(result.toBigInteger(),
-                       onExceedBoundary);
-    }
-
-    @NotNull
-    public Count multipliedBy(@NotNull final BigInteger multiplicand,
-                              @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert multiplicand != null;
-        assert onExceedBoundary != null;
-
-        return valueOf(value.multiply(multiplicand),
-                       onExceedBoundary);
-    }
-
-    /**
-     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
-     * truncated.
-     */
-    @NotNull
-    public Count multipliedBy(@NotNull final BigNumber multiplicand,
-                              @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert multiplicand != null;
-        assert onExceedBoundary != null;
-
-        return multipliedBy(multiplicand.bigDecimalValue(),
-                            onExceedBoundary);
-    }
-
-    @NotNull
-    public Count multipliedBy(final long multiplicand,
-                              @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert onExceedBoundary != null;
-
-        return multipliedBy(asBigInteger(multiplicand),
-                            onExceedBoundary);
-    }
-
-    /**
-     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
-     * truncated.
-     */
-    @NotNull
-    public Count multipliedBy(@NotNull final Number multiplicand,
-                              @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert multiplicand != null;
-        assert onExceedBoundary != null;
-
-        return multipliedBy(BigDecimal.valueOf(multiplicand.doubleValue()),
-                            onExceedBoundary);
-    }
-
-    /**
-     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
-     * truncated.
-     */
-    @NotNull
-    public Count dividedBy(@NotNull final BigDecimal divisor,
-                           @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert divisor != null;
-        assert onExceedBoundary != null;
-
-        final BigDecimal result = new BigDecimal(value).divide(divisor,
-                                                               10,      // make sure there is plenty of room in the scale so that the integer component is not rounded
-                                                               RoundingMode.HALF_UP);
-
-        return valueOf(result.toBigInteger(),
-                       onExceedBoundary);
-    }
-
-    @NotNull
-    public Count dividedBy(@NotNull final BigInteger divisor,
-                           @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert divisor != null;
-        assert onExceedBoundary != null;
-
-        return valueOf(value.divide(divisor),
-                       onExceedBoundary);
-    }
-
-    /**
-     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
-     * truncated.
-     */
-    @NotNull
-    public Count dividedBy(@NotNull final BigNumber divisor,
-                           @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert divisor != null;
-        assert onExceedBoundary != null;
-
-        return dividedBy(divisor.bigDecimalValue(),
-                         onExceedBoundary);
-    }
-
-    @NotNull
-    public Count dividedBy(final long divisor,
-                           @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert onExceedBoundary != null;
-
-        return dividedBy(asBigInteger(divisor),
-                         onExceedBoundary);
-    }
-
-    /**
-     * If the result (before conversion to a {@link Count} instance) has a fractional component then this will be
-     * truncated.
-     */
-    @NotNull
-    public Count dividedBy(@NotNull final Number divisor,
-                           @NotNull final OnExceedBoundary onExceedBoundary) {
-        assert divisor != null;
-        assert onExceedBoundary != null;
-
-        return multipliedBy(BigDecimal.valueOf(divisor.doubleValue()),
-                            onExceedBoundary);
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if(this == o) {
-            return true;
-        }
-        if(o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        final Count count = (Count) o;
-
-        return value.equals(count.value);
-
-    }
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return "Count{" +
-               "value=" + String.format("%,d", value) +
-               '}';
-    }
+  @Override
+  public String toString() {
+    return "Count{" +
+           "value=" + String.format("%,d", value) +
+           '}';
+  }
 }
 

@@ -26,9 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ByIdSpecifiersTest {
 
     private void assertAllBased(final @NotNull ByIdSpecifier<String> specifier,
-                                @NotNull final ImmutableSet<String> exclusions) {
-        assert specifier != null;
-        assert exclusions != null;
+                                final @NotNull ImmutableSet<String> exclusions) {
 
         assertThat(specifier)
                 .isInstanceOf(AllBasedByIdSpecifier.class);
@@ -37,10 +35,8 @@ public class ByIdSpecifiersTest {
                 .contains(exclusions);
     }
 
-    private void assertNoneBased(@NotNull final ByIdSpecifier<String> specifier,
-                                 @NotNull final ImmutableSet<String> inclusions) {
-        assert specifier != null;
-        assert inclusions != null;
+    private void assertNoneBased(final @NotNull ByIdSpecifier<String> specifier,
+                                 final @NotNull ImmutableSet<String> inclusions) {
 
         assertThat(specifier)
                 .isInstanceOf(NoneBasedByIdSpecifier.class);

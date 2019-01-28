@@ -28,43 +28,40 @@ import java.util.function.Supplier;
  * Instances of this class have a supplier of values and hold the 'last known value' from that supplier.  When the
  * {@link #checkForChange()} method is called it may optionally return any change from the supplier.
  */
+@SuppressWarnings("WeakerAccess")
 @ThreadSafe
 public class ChangeChecker<T> {
 
-    @NotNull
-    private final Supplier<Optional<T>> valueSupplier;
+  private final @NotNull Supplier<Optional<T>> valueSupplier;
 
-    private final @NotNull WrappedLock lock;
+  private final @NotNull WrappedLock lock;
 
-    @NotNull
-    private Optional<T> knownValue;
+  private @NotNull Optional<T> knownValue;
 
-    public ChangeChecker(@NotNull final Supplier<Optional<T>> valueSupplier) {
-        assert valueSupplier != null;
+  public ChangeChecker(final @NotNull Supplier<Optional<T>> valueSupplier) {
 
-        this.valueSupplier = valueSupplier;
+    this.valueSupplier = valueSupplier;
 
-        this.lock = new WrappedLock(new ReentrantLock(false));
-        this.knownValue = Optional.empty();
-    }
+    this.lock = new WrappedLock(new ReentrantLock(false));
+    this.knownValue = Optional.empty();
+  }
 
-    @NotNull
-    public Optional<ChangedValue<T>> checkForChange() {
-        return lock.inLock(() -> {
-            Optional<ChangedValue<T>> result = Optional.empty();
+  public @NotNull Optional<ChangedValue<T>> checkForChange() {
+    return lock.inLock(() -> {
+      Optional<ChangedValue<T>> result = Optional.empty();
 
-            final Optional<T> mostRecentValue = valueSupplier.get();
-            if(!knownValue.equals(mostRecentValue)) {
+      final Optional<T> mostRecentValue = valueSupplier.get();
+      if(!knownValue.equals(mostRecentValue)) {
 
-                // make sure we capture 'knownValue' before resetting it
-                result = Optional.of(new ChangedValue<>(knownValue,
-                                                        mostRecentValue));
+        // make sure we capture 'knownValue' before resetting it
+        result = Optional.of(new ChangedValue<>(knownValue,
+                                                mostRecentValue));
 
-                knownValue = mostRecentValue;
-            }
+        knownValue = mostRecentValue;
+      }
 
-            return result;
-        });
-    }
+      return result;
+    });
+  }
 
 }

@@ -25,40 +25,35 @@ import java.util.Optional;
 /**
  * This implementation of {@link ByIdSpecifier} defaults to excluding everything, but may have inclusions.
  */
+@SuppressWarnings("WeakerAccess")
 @Immutable
 class NoneBasedByIdSpecifier<T> implements ByIdSpecifier<T> {
 
-    @NotNull
-    private final ImmutableSet<T> inclusions;
+    private final @NotNull ImmutableSet<T> inclusions;
 
-    public NoneBasedByIdSpecifier(@NotNull final Iterable<? extends T> inclusions) {
-        assert inclusions != null;
+    public NoneBasedByIdSpecifier(final @NotNull Iterable<? extends T> inclusions) {
 
         this.inclusions = ImmutableSet.copyOf(inclusions);
     }
 
     @Override
-    public boolean test(@NotNull final T value) {
-
-        assert value != null;
+    public boolean test(final @NotNull T value) {
 
         return inclusions.contains(value);
     }
 
-    @SuppressWarnings("OptionalContainsCollection")
-    @NotNull
     @Override
-    public Optional<ImmutableSet<T>> getIncludeIds() {
+    @SuppressWarnings("OptionalContainsCollection")
+    public @NotNull Optional<ImmutableSet<T>> getIncludeIds() {
         return Optional.of(inclusions);
     }
 
     /**
      * This instance has no record of exclude ids - return empty to indicate this is not applicable.
      */
-    @SuppressWarnings("OptionalContainsCollection")
-    @NotNull
     @Override
-    public Optional<ImmutableSet<T>> getExcludeIds() {
+    @SuppressWarnings("OptionalContainsCollection")
+    public @NotNull Optional<ImmutableSet<T>> getExcludeIds() {
         return Optional.empty();
     }
 

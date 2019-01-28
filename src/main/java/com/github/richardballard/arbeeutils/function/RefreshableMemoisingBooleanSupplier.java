@@ -26,37 +26,36 @@ import java.util.function.Supplier;
  * This is equivalent to {@link RefreshableMemoisingSupplier} but implements {@link BooleanSupplier} rather than
  * {@link Supplier}.
  */
+@SuppressWarnings("unused")
 @ThreadSafe
 public class RefreshableMemoisingBooleanSupplier implements BooleanSupplier {
 
-    @NotNull
-    private final RefreshableMemoisingSupplier<Boolean> coreSupplier;
+  private final @NotNull RefreshableMemoisingSupplier<Boolean> coreSupplier;
 
-    public RefreshableMemoisingBooleanSupplier(@NotNull final BooleanSupplier delegate) {
-        assert delegate != null;
+  public RefreshableMemoisingBooleanSupplier(final @NotNull BooleanSupplier delegate) {
 
-        this.coreSupplier = new RefreshableMemoisingSupplier<>(delegate::getAsBoolean);
-    }
+    this.coreSupplier = new RefreshableMemoisingSupplier<>(delegate::getAsBoolean);
+  }
 
-    /**
-     * See {@link RefreshableMemoisingSupplier#get()}
-     */
-    @Override
-    public boolean getAsBoolean() {
-        return coreSupplier.get();
-    }
+  /**
+   * See {@link RefreshableMemoisingSupplier#get()}
+   */
+  @Override
+  public boolean getAsBoolean() {
+    return coreSupplier.get();
+  }
 
-    /**
-     * See {@link RefreshableMemoisingSupplier#invalidate()}
-     */
-    public void invalidate() {
-        coreSupplier.invalidate();
-    }
+  /**
+   * See {@link RefreshableMemoisingSupplier#invalidate()}
+   */
+  public void invalidate() {
+    coreSupplier.invalidate();
+  }
 
-    /**
-     * See {@link RefreshableMemoisingSupplier#refresh()}
-     */
-    public boolean refresh() {
-        return coreSupplier.refresh();
-    }
+  /**
+   * See {@link RefreshableMemoisingSupplier#refresh()}
+   */
+  public boolean refresh() {
+    return coreSupplier.refresh();
+  }
 }

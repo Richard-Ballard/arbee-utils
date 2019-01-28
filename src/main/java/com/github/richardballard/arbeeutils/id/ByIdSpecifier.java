@@ -29,37 +29,37 @@ import java.util.function.Predicate;
  */
 public interface ByIdSpecifier<T> extends Predicate<T> {
 
-    /**
-     * Returns any inclusions if this is applicable to the type.
-     * <p/>
-     * If this returns {@link Optional#empty()} then the instance is 'all based' - i.e. it matches all by default and
-     * may have exclusions.
-     * <p/>
-     * If this returns a present optional then the instance is 'none based' - i.e. it matches none by default and may
-     * have some inclusions.
-     * <p/>
-     * If this returns an empty set then it means 'exclude everything' (i.e. match nothing).
-     *
-     * @return empty if inclusions are not applicable, e.g. if this instance is one that includes everything with some exclusions.
-     */
-    @SuppressWarnings("OptionalContainsCollection")
-    @NotNull
-    Optional<ImmutableSet<T>> getIncludeIds();
+  /**
+   * Returns any inclusions if this is applicable to the type.
+   * <p/>
+   * If this returns {@link Optional#empty()} then the instance is 'all based' - i.e. it matches all by default and
+   * may have exclusions.
+   * <p/>
+   * If this returns a present optional then the instance is 'none based' - i.e. it matches none by default and may
+   * have some inclusions.
+   * <p/>
+   * If this returns an empty set then it means 'exclude everything' (i.e. match nothing).
+   *
+   * @return empty if inclusions are not applicable, e.g. if this instance is one that includes everything with some exclusions.
+   */
+  @SuppressWarnings("OptionalContainsCollection")
+  @NotNull
+  Optional<ImmutableSet<T>> getIncludeIds();
 
-    /**
-     * Returns any exclusions if this is applicable to the type.
-     * <p/>
-     * If this returns {@link Optional#empty()} then the instance is 'none based' - i.e. it matches none by default and
-     * may have inclusions.
-     * <p/>
-     * If this returns a present optional then the instance is 'all based' - i.e. it matches all by default and may
-     * have some exclusions.
-     * <p/>
-     * If this returns an empty set then it means 'include everything'
+  /**
+   * Returns any exclusions if this is applicable to the type.
+   * <p/>
+   * If this returns {@link Optional#empty()} then the instance is 'none based' - i.e. it matches none by default and
+   * may have inclusions.
+   * <p/>
+   * If this returns a present optional then the instance is 'all based' - i.e. it matches all by default and may
+   * have some exclusions.
+   * <p/>
+   * If this returns an empty set then it means 'include everything'
 
-     * @return empty if exclusions are not applicable, e.g. if this instance is one that excludes everything with some inclusions.
-     */
-    @SuppressWarnings("OptionalContainsCollection")
-    @NotNull
-    Optional<ImmutableSet<T>> getExcludeIds();
+   * @return empty if exclusions are not applicable, e.g. if this instance is one that excludes everything with some inclusions.
+   */
+  @SuppressWarnings("OptionalContainsCollection")
+  @NotNull
+  Optional<ImmutableSet<T>> getExcludeIds();
 }

@@ -48,21 +48,17 @@ public class VariableDelayRepeatingExecutorServiceTest {
     private static final Duration ANY_INITIAL_DELAY = Duration.ofSeconds(98765L);
 
 
-    @NotNull
-    private ScheduledExecutorService getExecutorService() {
+    private @NotNull ScheduledExecutorService getExecutorService() {
         return mock(ScheduledExecutorService.class);
     }
 
-    @NotNull
-    private Supplier<TimeTick> getCurrentTimeTickSupplier(final @NotNull ImmutableList<TimeTick> timeTicks) {
-        assert timeTicks != null;
+    private @NotNull Supplier<TimeTick> getCurrentTimeTickSupplier(final @NotNull ImmutableList<TimeTick> timeTicks) {
 
         return MoreMockUtils.mockSupplierMultipleAnswers(timeTicks);
     }
 
     @SuppressWarnings("unchecked")
-    @NotNull
-    private Supplier<VariableDelayRepeatingExecutorService.WhatToDoNext> getOperation(final int executeCount) {
+    private @NotNull Supplier<VariableDelayRepeatingExecutorService.WhatToDoNext> getOperation(final int executeCount) {
         final Supplier<VariableDelayRepeatingExecutorService.WhatToDoNext> supplier = mock(Supplier.class);
 
         final AtomicInteger callCount = new AtomicInteger(0);

@@ -34,56 +34,56 @@ import static org.mockito.Mockito.when;
 @Test
 public class MoreUncheckedTest {
 
-    private static final String ANY_VALUE = "anyValue";
+  private static final String ANY_VALUE = "anyValue";
 
 
-    public void callReturnsWhereNoException() throws Exception {
-        final String value = "value";
-        final Callable<String> callable = MoreMockUtils.mockCallableSingleAnswer(value);
+  public void callReturnsWhereNoException() throws Exception {
+    final String value = "value";
+    final Callable<String> callable = MoreMockUtils.mockCallableSingleAnswer(value);
 
-        final Consumer<Throwable> handler = MoreMockUtils.mockConsumer();
+    final Consumer<Throwable> handler = MoreMockUtils.mockConsumer();
 
-        assertThat(MoreUnchecked.call(callable,
-                                      handler))
-                .isEqualTo(value);
+    assertThat(MoreUnchecked.call(callable,
+                                  handler))
+        .isEqualTo(value);
 
-        // make sure it was only called once
-        verify(callable).call();
+    // make sure it was only called once
+    verify(callable).call();
 
-        verify(handler, never()).accept(any(Throwable.class));
-    }
+    verify(handler, never()).accept(any(Throwable.class));
+  }
 
-    public void callCallsHandlerWhenException() throws Exception {
-        final Callable<String> callable = MoreMockUtils.mockCallableSingleAnswer(ANY_VALUE);
+  public void callCallsHandlerWhenException() throws Exception {
+    final Callable<String> callable = MoreMockUtils.mockCallableSingleAnswer(ANY_VALUE);
 
-        final IOException originExc = new IOException("test");
-        when(callable.call())
-                .thenThrow(originExc);
+    final IOException originExc = new IOException("test");
+    when(callable.call())
+        .thenThrow(originExc);
 
-        final Consumer<Throwable> handler = MoreMockUtils.mockConsumer();
+    final Consumer<Throwable> handler = MoreMockUtils.mockConsumer();
 
-        final RuntimeException subsequentExc = new RuntimeException("sub");
-        doThrow(subsequentExc)
-                .when(handler)
-                .accept(any(Throwable.class));
+    final RuntimeException subsequentExc = new RuntimeException("sub");
+    doThrow(subsequentExc)
+        .when(handler)
+        .accept(any(Throwable.class));
 
-        assertThatThrownBy(() -> MoreUnchecked.call(callable,
-                                                    handler))
-                .isEqualTo(subsequentExc);
+    assertThatThrownBy(() -> MoreUnchecked.call(callable,
+                                                handler))
+        .isEqualTo(subsequentExc);
 
-        verify(handler).accept(originExc);
-    }
+    verify(handler).accept(originExc);
+  }
 
-    public void callsThrowsIfHandlerDoesntThrow() throws Exception {
-        final Callable<String> callable = MoreMockUtils.mockCallableSingleAnswer(ANY_VALUE);
+  public void callsThrowsIfHandlerDoesntThrow() throws Exception {
+    final Callable<String> callable = MoreMockUtils.mockCallableSingleAnswer(ANY_VALUE);
 
-        final IOException originExc = new IOException("test");
-        when(callable.call())
-                .thenThrow(originExc);
+    final IOException originExc = new IOException("test");
+    when(callable.call())
+        .thenThrow(originExc);
 
-        assertThatThrownBy(() -> MoreUnchecked.call(callable,
-                                                    MoreMockUtils.mockConsumer()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Exception handler must throw a RuntimeException");
-    }
+    assertThatThrownBy(() -> MoreUnchecked.call(callable,
+                                                MoreMockUtils.mockConsumer()))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Exception handler must throw a RuntimeException");
+  }
 }

@@ -20,6 +20,7 @@ package com.github.richardballard.arbeeutils.concurrent;
  * Exception that indicates that an attempt to acquire a lock has timed out.
  */
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class AcquireTimeoutException extends RuntimeException {
 
     private static final long serialVersionUID = -6937587462161757434L;

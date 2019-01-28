@@ -25,14 +25,13 @@ import java.util.concurrent.TimeUnit;
 
 @ThreadSafe
 public enum StandardThreadOperations implements ThreadOperations {
-    INSTANCE;
+  INSTANCE;
 
 
-    @Override
-    public void sleep(final @NotNull Duration duration) {
-        assert duration != null;
+  @Override
+  public void sleep(final @NotNull Duration duration) {
 
-        Uninterruptibles.sleepUninterruptibly(duration.toNanos(),
-                                              TimeUnit.NANOSECONDS);
-    }
+    Uninterruptibles.sleepUninterruptibly(duration.toNanos(),
+                                          TimeUnit.NANOSECONDS);
+  }
 }

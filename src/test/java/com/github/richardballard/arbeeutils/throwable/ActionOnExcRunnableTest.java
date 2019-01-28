@@ -28,68 +28,65 @@ import static org.mockito.Mockito.*;
 @Test
 public class ActionOnExcRunnableTest {
 
-    @SuppressWarnings("unchecked")
-    @NotNull
-    private Consumer<RuntimeException> getExceptionConsumer() {
-        return mock(Consumer.class);
-    }
+  @SuppressWarnings("unchecked")
+  private @NotNull Consumer<RuntimeException> getExceptionConsumer() {
+    return mock(Consumer.class);
+  }
 
-    @NotNull
-    private Runnable getDelegate(@NotNull final RuntimeException exc) {
-        final Runnable runnable = mock(Runnable.class);
+  private @NotNull Runnable getDelegate(final @NotNull RuntimeException exc) {
+    final Runnable runnable = mock(Runnable.class);
 
-        doThrow(exc).when(runnable)
-                    .run();
+    doThrow(exc).when(runnable)
+                .run();
 
-        return runnable;
-    }
+    return runnable;
+  }
 
-    public void exceptionIsPassedToConsumer() {
-        final RuntimeException exc = new RuntimeException("test");
+  public void exceptionIsPassedToConsumer() {
+    final RuntimeException exc = new RuntimeException("test");
 
-        final Consumer<RuntimeException> exceptionConsumer = getExceptionConsumer();
+    final Consumer<RuntimeException> exceptionConsumer = getExceptionConsumer();
 
-        final ActionOnExcRunnable runnable = new ActionOnExcRunnable(exceptionConsumer,
-                                                                     getDelegate(exc));
+    final ActionOnExcRunnable runnable = new ActionOnExcRunnable(exceptionConsumer,
+                                                                 getDelegate(exc));
 
-        runnable.run();
+    runnable.run();
 
-        verify(exceptionConsumer).accept(exc);
-    }
+    verify(exceptionConsumer).accept(exc);
+  }
 
-    @NotNull
-    private Logger getLogger() {
-        return mock(Logger.class);
-    }
+  private @NotNull Logger getLogger() {
+    return mock(Logger.class);
+  }
 
-    public void logAndSwallowLogsAndSwallows() {
-        final Logger logger = getLogger();
+  public void logAndSwallowLogsAndSwallows() {
+    final Logger logger = getLogger();
 
-        final RuntimeException exc = new RuntimeException("test");
+    final RuntimeException exc = new RuntimeException("test");
 
-        final ActionOnExcRunnable runnable = ActionOnExcRunnable.logErrorAndSwallow(logger,
-                                                                                    getDelegate(exc));
+    final ActionOnExcRunnable runnable = ActionOnExcRunnable.logErrorAndSwallow(logger,
+                                                                                getDelegate(exc));
 
-        runnable.run();
+    runnable.run();
 
-        verify(logger).error("Caught exc",
-                             exc);
+    verify(logger).error("Caught exc",
+                         exc);
 
-    }
+  }
 
-    public void logAndRethrowLogsAndRethrows() {
-        final Logger logger = getLogger();
+  public void logAndRethrowLogsAndRethrows() {
+    final Logger logger = getLogger();
 
-        final RuntimeException exc = new RuntimeException("test");
+    final RuntimeException exc = new RuntimeException("test");
 
-        final ActionOnExcRunnable runnable = ActionOnExcRunnable.logErrorAndRethrow(logger,
-                                                                                    getDelegate(exc));
+    final ActionOnExcRunnable runnable = ActionOnExcRunnable.logErrorAndRethrow(logger,
+                                                                                getDelegate(exc));
 
-        assertThatThrownBy(runnable::run)
-                .isEqualTo(exc);
+    assertThatThrownBy(runnable::run)
+        .isEqualTo(exc);
 
-        verify(logger).error("Caught exc",
-                             exc);
+    verify(logger).error("Caught exc",
+                         exc);
 
-    }
+  }
 }

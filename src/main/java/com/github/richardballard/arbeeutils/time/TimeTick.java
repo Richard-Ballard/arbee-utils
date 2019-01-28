@@ -38,9 +38,7 @@ public class TimeTick implements Comparable<TimeTick> {
         this.nanoTicks = nanoTicks;
     }
 
-    @NotNull
-    public Duration durationSince(@NotNull final TimeTick startTick) {
-        assert startTick != null;
+    public @NotNull Duration durationSince(final @NotNull TimeTick startTick) {
 
         Preconditions.checkArgument(startTick.compareTo(this) <= 0,
                                     "start tick (%s) must not be after this tick (%s)",
@@ -54,9 +52,7 @@ public class TimeTick implements Comparable<TimeTick> {
      *
      * @throws ArithmeticException if the addition would cause an overflow or underflow
      */
-    @NotNull
-    public TimeTick plus(@NotNull final Duration duration) throws ArithmeticException {
-        assert duration != null;
+    public @NotNull TimeTick plus(final @NotNull Duration duration) throws ArithmeticException {
 
         final TimeTick result;
         if(duration.isZero()) {
@@ -72,8 +68,7 @@ public class TimeTick implements Comparable<TimeTick> {
 
     @SuppressWarnings("SubtractionInCompareTo")
     @Override
-    public int compareTo(@NotNull final TimeTick other) {
-        assert other != null;
+    public int compareTo(final @NotNull TimeTick other) {
 
         // Note, usually I would call Long.compare() for this, but the notes for System.nanoTime() explicitly say
         // that when comparing longs that are from this method you should use t1 - t0 < 0.  This is usually a bad

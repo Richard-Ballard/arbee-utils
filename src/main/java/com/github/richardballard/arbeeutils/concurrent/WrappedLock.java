@@ -27,72 +27,65 @@ import java.util.function.Supplier;
  * This class is a simple wrapper around an instance of {@link Lock} that allows you to call the lock methods in a
  * functional type manner.
  */
+@SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
 @ThreadSafe
 public class WrappedLock {
-    @NotNull
-    private final Lock delegate;
+  private final @NotNull Lock delegate;
 
-    public WrappedLock(@NotNull final Lock delegate) {
-        assert delegate != null;
+  public WrappedLock(final @NotNull Lock delegate) {
 
-        this.delegate = delegate;
+    this.delegate = delegate;
+  }
+
+  private <T> T inLock(final @NotNull Runnable acquireLockRunnable,
+                       final @NotNull Supplier<T> operation) {
+
+    acquireLockRunnable.run();
+    try {
+      return operation.get();
     }
-
-    private <T> T inLock(@NotNull final Runnable acquireLockRunnable,
-                         @NotNull final Supplier<T> operation) {
-        assert acquireLockRunnable != null;
-        assert operation != null;
-
-        acquireLockRunnable.run();
-        try {
-            return operation.get();
-        }
-        finally {
-            delegate.unlock();
-        }
+    finally {
+      delegate.unlock();
     }
+  }
 
-    public <T> T inLock(@NotNull final Supplier<T> operation) {
-        assert operation != null;
+  public <T> T inLock(final @NotNull Supplier<T> operation) {
 
-        return inLock(delegate::lock,
-                      operation);
-    }
+    return inLock(delegate::lock,
+                  operation);
+  }
 
-    public <T> T inLock(@NotNull final Supplier<T> operation,
-                        @NotNull final Duration acquireTimeout) throws AcquireTimeoutException {
-        assert operation != null;
-        assert acquireTimeout != null;
+  public <T> T inLock(final @NotNull Supplier<T> operation,
+                      final @NotNull Duration acquireTimeout) throws AcquireTimeoutException {
 
-        return inLock(() -> {
-            if(!MoreUninterruptibles.tryLockUninterruptibly(delegate,
-                                                            acquireTimeout)) {
-                throw new AcquireTimeoutException();
-            }
-        },
-                      operation);
-    }
+    return inLock(() -> {
+                    if(!MoreUninterruptibles.tryLockUninterruptibly(delegate,
+                                                                    acquireTimeout)) {
+                      throw new AcquireTimeoutException();
+                    }
+                  },
+                  operation);
+  }
 
-    public void inLock(@NotNull final Runnable operation) {
-        assert operation != null;
+  public void inLock(final @NotNull Runnable operation) {
 
-        inLock(() -> {
-            operation.run();
+    inLock(() -> {
+      operation.run();
 
-            return null;
-        });
-    }
+      //noinspection ReturnOfNull
+      return null;
+    });
+  }
 
-    public void inLock(@NotNull final Runnable operation,
-                       @NotNull final Duration acquireTimeout) throws AcquireTimeoutException {
-        assert operation != null;
-        assert acquireTimeout != null;
+  public void inLock(final @NotNull Runnable operation,
+                     final @NotNull Duration acquireTimeout) throws AcquireTimeoutException {
 
-        inLock(() -> {
-            operation.run();
+    inLock(() -> {
+             operation.run();
 
-            return null;
-        },
-               acquireTimeout);
-    }
+             //noinspection ReturnOfNull
+             return null;
+           },
+           acquireTimeout);
+  }
 }

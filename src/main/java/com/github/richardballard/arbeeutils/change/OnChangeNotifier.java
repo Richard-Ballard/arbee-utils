@@ -16,7 +16,6 @@
 
 package com.github.richardballard.arbeeutils.change;
 
-import com.google.common.annotations.VisibleForTesting;
 import net.jcip.annotations.ThreadSafe;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,36 +27,29 @@ import java.util.function.Supplier;
  * Instances of this class have a supplier of values and hold the 'last known value' from that supplier.  They are
  * also constructed with a consumer that is notified when a change in value occurs.
  */
+@SuppressWarnings("unused")
 @ThreadSafe
 public class OnChangeNotifier<T> {
 
-    @NotNull
-    private final ChangeChecker<T> changeChecker;
+    private final @NotNull ChangeChecker<T> changeChecker;
 
-    @NotNull
-    private final Consumer<? super ChangedValue<T>> changedValueConsumer;
+    private final @NotNull Consumer<? super ChangedValue<T>> changedValueConsumer;
 
-    @VisibleForTesting
-    OnChangeNotifier(@NotNull final ChangeChecker<T> changeChecker,
-                     @NotNull final Consumer<? super ChangedValue<T>> changedValueConsumer) {
-        assert changeChecker != null;
-        assert changedValueConsumer != null;
+    private OnChangeNotifier(final @NotNull ChangeChecker<T> changeChecker,
+                             final @NotNull Consumer<? super ChangedValue<T>> changedValueConsumer) {
 
         this.changeChecker = changeChecker;
         this.changedValueConsumer = changedValueConsumer;
     }
 
-    public OnChangeNotifier(@NotNull final Supplier<Optional<T>> valueSupplier,
-                            @NotNull final Consumer<? super ChangedValue<T>> changedValueConsumer) {
-        this(new ChangeChecker<T>(valueSupplier),
+    public OnChangeNotifier(final @NotNull Supplier<Optional<T>> valueSupplier,
+                            final @NotNull Consumer<? super ChangedValue<T>> changedValueConsumer) {
+        this(new ChangeChecker<>(valueSupplier),
              changedValueConsumer);
-
-        assert valueSupplier != null;
-        assert changedValueConsumer != null;
     }
 
     public void checkForChange() {
-        changeChecker.checkForChange().ifPresent(changedValueConsumer::accept);
+        changeChecker.checkForChange().ifPresent(changedValueConsumer);
     }
 
 }

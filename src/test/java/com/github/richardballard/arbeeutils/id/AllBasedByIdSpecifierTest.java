@@ -24,38 +24,38 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Test
 public class AllBasedByIdSpecifierTest {
 
-    public void testExcludesExclusionsOnly() {
-        final AllBasedByIdSpecifier<String> specifier = new AllBasedByIdSpecifier<>(ImmutableSet.of("cat",
-                                                                                                    "rat"));
+  public void testExcludesExclusionsOnly() {
+    final AllBasedByIdSpecifier<String> specifier = new AllBasedByIdSpecifier<>(ImmutableSet.of("cat",
+                                                                                                "rat"));
 
-        assertThat(specifier.test("ant"))
-                .isTrue();
+    assertThat(specifier.test("ant"))
+        .isTrue();
 
-        assertThat(specifier.test("cat"))
-                .isFalse();
+    assertThat(specifier.test("cat"))
+        .isFalse();
 
-        assertThat(specifier.test("bee"))
-                .isTrue();
+    assertThat(specifier.test("bee"))
+        .isTrue();
 
-        assertThat(specifier.test("rat"))
-                .isFalse();
-    }
+    assertThat(specifier.test("rat"))
+        .isFalse();
+  }
 
-    public void getIncludeIdsIsEmpty() {
-        final AllBasedByIdSpecifier<String> specifier = new AllBasedByIdSpecifier<>(ImmutableSet.of("cat",
-                                                                                                    "rat"));
+  public void getIncludeIdsIsEmpty() {
+    final AllBasedByIdSpecifier<String> specifier = new AllBasedByIdSpecifier<>(ImmutableSet.of("cat",
+                                                                                                "rat"));
 
-        assertThat(specifier.getIncludeIds())
-                .isEmpty();
-    }
+    assertThat(specifier.getIncludeIds())
+        .isEmpty();
+  }
 
-    public void getExcludeIdsHasExclusions() {
-        final AllBasedByIdSpecifier<String> specifier = new AllBasedByIdSpecifier<>(ImmutableSet.of("cat",
-                                                                                                    "rat"));
+  public void getExcludeIdsHasExclusions() {
+    final AllBasedByIdSpecifier<String> specifier = new AllBasedByIdSpecifier<>(ImmutableSet.of("cat",
+                                                                                                "rat"));
 
-        //noinspection OptionalGetWithoutIsPresent
-        assertThat(specifier.getExcludeIds().get())
-                .containsOnly("cat",
-                              "rat");
-    }
+    //noinspection OptionalGetWithoutIsPresent
+    assertThat(specifier.getExcludeIds().get())
+        .containsOnly("cat",
+                      "rat");
+  }
 }

@@ -23,25 +23,22 @@ import java.util.function.Supplier;
 
 @Immutable
 public enum TimeTicks {
-    ;
+  ;
 
-    @NotNull
-    private static final Supplier<TimeTick> SYSTEM_CURRENT_TIME_TICK_SUPPLIER =
-            () -> new TimeTick(System.nanoTime());
+  private static final @NotNull Supplier<TimeTick> SYSTEM_CURRENT_TIME_TICK_SUPPLIER =
+      () -> new TimeTick(System.nanoTime());
 
-    /**
-     * Returns a {@link Supplier} thats gives the current {@link TimeTick}.
-     */
-    @NotNull
-    public static Supplier<TimeTick> systemCurrentTimeTickSupplier() {
-        return SYSTEM_CURRENT_TIME_TICK_SUPPLIER;
-    }
+  /**
+   * Returns a {@link Supplier} that gives the current {@link TimeTick}.
+   */
+  public static @NotNull Supplier<TimeTick> systemCurrentTimeTickSupplier() {
+    return SYSTEM_CURRENT_TIME_TICK_SUPPLIER;
+  }
 
-    /**
-     * This method is intended for tests where a known value must be used to make things deterministic
-     */
-    @NotNull
-    public static TimeTick explicitTimeTick(final long nanoTicks) {
-        return new TimeTick(nanoTicks);
-    }
+  /**
+   * This method is intended for tests where a known value must be used to make things deterministic
+   */
+  public static @NotNull TimeTick explicitTimeTick(final long nanoTicks) {
+    return new TimeTick(nanoTicks);
+  }
 }

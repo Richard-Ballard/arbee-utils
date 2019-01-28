@@ -23,30 +23,26 @@ import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Supplier;
 
+@SuppressWarnings("unused")
 @ThreadSafe
 public class WrappedStampedLockFactory {
-    @NotNull
-    private final Supplier<TimeTick> currentTimeTickSupplier;
+  private final @NotNull Supplier<? extends TimeTick> currentTimeTickSupplier;
 
-    public WrappedStampedLockFactory(@NotNull final Supplier<TimeTick> currentTimeTickSupplier) {
-        assert currentTimeTickSupplier != null;
+  public WrappedStampedLockFactory(final @NotNull Supplier<? extends TimeTick> currentTimeTickSupplier) {
 
-        this.currentTimeTickSupplier = currentTimeTickSupplier;
-    }
+    this.currentTimeTickSupplier = currentTimeTickSupplier;
+  }
 
-    @NotNull
-    public WrappedStampedLock get(final @NotNull StampedLock delegate) {
-        assert delegate != null;
+  public @NotNull WrappedStampedLock get(final @NotNull StampedLock delegate) {
 
-        return new WrappedStampedLock(delegate,
-                                      WrappedReadWriteLock::new,
-                                      WrappedLock::new,
-                                      currentTimeTickSupplier);
-    }
+    return new WrappedStampedLock(delegate,
+                                  WrappedReadWriteLock::new,
+                                  WrappedLock::new,
+                                  currentTimeTickSupplier);
+  }
 
-    @NotNull
-    public WrappedStampedLock get() {
-        return get(new StampedLock());
-    }
+  public @NotNull WrappedStampedLock get() {
+    return get(new StampedLock());
+  }
 
 }

@@ -33,157 +33,142 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Test
 public class MoreCollectorsTest {
 
-    @DataProvider(name = "testData")
-    @NotNull
-    public TestData[][] getTestData() {
-        final Function<Integer, Integer> keyMapper = UnaryOperator.identity();
-        final Function<Integer, String> valueMapper = k -> "v" + k;
+  @DataProvider(name = "testData")
+  public @NotNull TestData[][] getTestData() {
+    final Function<Integer, Integer> keyMapper = UnaryOperator.identity();
+    final Function<Integer, String> valueMapper = k -> "v" + k;
 
-        return new TestData[][] {
-                // ImmutableList
-                { new TestData(MoreCollectors.toImmutableList(),
-                               ImmutableList.of(),
-                               ImmutableList.class,
-                               "[]") },
+    return new TestData[][] {
+        // ImmutableList
+        { new TestData(MoreCollectors.toImmutableList(),
+                       ImmutableList.of(),
+                       ImmutableList.class,
+                       "[]") },
 
-                { new TestData(MoreCollectors.toImmutableList(),
-                               ImmutableList.of(1, 2, 3),
-                               ImmutableList.class,
-                               "[1, 2, 3]") },
+        { new TestData(MoreCollectors.toImmutableList(),
+                       ImmutableList.of(1, 2, 3),
+                       ImmutableList.class,
+                       "[1, 2, 3]") },
 
-                { new TestData(MoreCollectors.toImmutableList(),
-                               ImmutableList.of(3, 2, 1),
-                               ImmutableList.class,
-                               "[3, 2, 1]") },
+        { new TestData(MoreCollectors.toImmutableList(),
+                       ImmutableList.of(3, 2, 1),
+                       ImmutableList.class,
+                       "[3, 2, 1]") },
 
-                // ImmutableSet
-                { new TestData(MoreCollectors.toImmutableSet(),
-                               ImmutableList.of(),
-                               ImmutableSet.class,
-                               "[]") },
+        // ImmutableSet
+        { new TestData(MoreCollectors.toImmutableSet(),
+                       ImmutableList.of(),
+                       ImmutableSet.class,
+                       "[]") },
 
-                { new TestData(MoreCollectors.toImmutableSet(),
-                               ImmutableList.of(1, 2, 3),
-                               ImmutableSet.class,
-                               "[1, 2, 3]") },
+        { new TestData(MoreCollectors.toImmutableSet(),
+                       ImmutableList.of(1, 2, 3),
+                       ImmutableSet.class,
+                       "[1, 2, 3]") },
 
-                { new TestData(MoreCollectors.toImmutableSet(),
-                               ImmutableList.of(3, 2, 1),
-                               ImmutableSet.class,
-                               "[3, 2, 1]") },
+        { new TestData(MoreCollectors.toImmutableSet(),
+                       ImmutableList.of(3, 2, 1),
+                       ImmutableSet.class,
+                       "[3, 2, 1]") },
 
-                // ImmutableMap
-                { new TestData(MoreCollectors.toImmutableMap(keyMapper,
-                                                             valueMapper),
-                               ImmutableList.of(),
-                               ImmutableMap.class,
-                               "{}") },
+        // ImmutableMap
+        { new TestData(MoreCollectors.toImmutableMap(keyMapper,
+                                                     valueMapper),
+                       ImmutableList.of(),
+                       ImmutableMap.class,
+                       "{}") },
 
-                { new TestData(MoreCollectors.toImmutableMap(keyMapper,
-                                                             valueMapper),
-                               ImmutableList.of(1, 2, 3),
-                               ImmutableMap.class,
-                               "{1=v1, 2=v2, 3=v3}") },
+        { new TestData(MoreCollectors.toImmutableMap(keyMapper,
+                                                     valueMapper),
+                       ImmutableList.of(1, 2, 3),
+                       ImmutableMap.class,
+                       "{1=v1, 2=v2, 3=v3}") },
 
-                { new TestData(MoreCollectors.toImmutableMap(keyMapper,
-                                                             valueMapper),
-                               ImmutableList.of(3, 2, 1),
-                               ImmutableMap.class,
-                               "{3=v3, 2=v2, 1=v1}") },
+        { new TestData(MoreCollectors.toImmutableMap(keyMapper,
+                                                     valueMapper),
+                       ImmutableList.of(3, 2, 1),
+                       ImmutableMap.class,
+                       "{3=v3, 2=v2, 1=v1}") },
 
         };
+  }
+
+  @Test(dataProvider = "testData")
+  public void serialStreamReturnsExpected(final @NotNull TestData data) {
+
+    final Object result = data.getInputValues()
+                              .stream()
+                              .collect(data.getCollector());
+
+    assertThat(result)
+        .isInstanceOf(data.getOutputClass());
+
+    assertThat(result.toString())
+        .isEqualTo(data.getOutputToString());
+  }
+
+  @Test(dataProvider = "testData")
+  public void parallelStreamReturnsExpected(final @NotNull TestData data) {
+
+    final Object result = data.getInputValues()
+                              .parallelStream()
+                              .collect(data.getCollector());
+
+    assertThat(result)
+        .isInstanceOf(data.getOutputClass());
+
+    assertThat(result.toString())
+        .isEqualTo(data.getOutputToString());
+  }
+
+
+  @SuppressWarnings("WeakerAccess")
+  @Immutable
+  public static class TestData {
+
+    private final @NotNull Collector<Integer, ?, ?> collector;
+
+    private final @NotNull ImmutableList<Integer> inputValues;
+
+    private final @NotNull Class<?> outputClass;
+
+    private final @NotNull String outputToString;
+
+    public TestData(final @NotNull Collector<Integer, ?, ?> collector,
+                    final @NotNull ImmutableList<Integer> inputValues,
+                    final @NotNull Class<?> outputClass,
+                    final @NotNull String outputToString) {
+
+      this.collector = collector;
+      this.inputValues = inputValues;
+      this.outputClass = outputClass;
+      this.outputToString = outputToString;
     }
 
-    @Test(dataProvider = "testData")
-    public void serialStreamReturnsExpected(@NotNull final TestData data) {
-        assert data != null;
-
-        final Object result = data.getInputValues()
-                                  .stream()
-                                  .collect(data.getCollector());
-
-        assertThat(result)
-                .isInstanceOf(data.getOutputClass());
-
-        assertThat(result.toString())
-                .isEqualTo(data.getOutputToString());
+    public @NotNull Collector<Integer, ?, ?> getCollector() {
+      return collector;
     }
 
-    @Test(dataProvider = "testData")
-    public void parallelStreamReturnsExpected(@NotNull final TestData data) {
-        assert data != null;
-
-        final Object result = data.getInputValues()
-                                  .parallelStream()
-                                  .collect(data.getCollector());
-
-        assertThat(result)
-                .isInstanceOf(data.getOutputClass());
-
-        assertThat(result.toString())
-                .isEqualTo(data.getOutputToString());
+    public @NotNull ImmutableList<Integer> getInputValues() {
+      return inputValues;
     }
 
-
-    @Immutable
-    public static class TestData {
-
-        @NotNull
-        private final Collector<Integer, ?, ?> collector;
-
-        @NotNull
-        private final ImmutableList<Integer> inputValues;
-
-        @NotNull
-        private final Class<?> outputClass;
-
-        @NotNull
-        private final String outputToString;
-
-        public TestData(@NotNull final Collector<Integer, ?, ?> collector,
-                        @NotNull final ImmutableList<Integer> inputValues,
-                        @NotNull final Class<?> outputClass,
-                        @NotNull final String outputToString) {
-            assert collector != null;
-            assert inputValues != null;
-            assert outputClass != null;
-            assert outputToString != null;
-
-            this.collector = collector;
-            //noinspection AssignmentToCollectionOrArrayFieldFromParameter
-            this.inputValues = inputValues;
-            this.outputClass = outputClass;
-            this.outputToString = outputToString;
-        }
-
-        @NotNull
-        public Collector<Integer, ?, ?> getCollector() {
-            return collector;
-        }
-
-        @NotNull
-        public ImmutableList<Integer> getInputValues() {
-            return inputValues;
-        }
-
-        @NotNull
-        public Class<?> getOutputClass() {
-            return outputClass;
-        }
-
-        @NotNull
-        public String getOutputToString() {
-            return outputToString;
-        }
-
-        @Override
-        public String toString() {
-            return "TestData{" +
-                   "collector=" + collector +
-                   ", inputValues=" + inputValues +
-                   ", outputClass=" + outputClass +
-                   ", outputToString='" + outputToString + '\'' +
-                   '}';
-        }
+    public @NotNull Class<?> getOutputClass() {
+      return outputClass;
     }
+
+    public @NotNull String getOutputToString() {
+      return outputToString;
+    }
+
+    @Override
+    public String toString() {
+      return "TestData{" +
+             "collector=" + collector +
+             ", inputValues=" + inputValues +
+             ", outputClass=" + outputClass +
+             ", outputToString='" + outputToString + '\'' +
+             '}';
+    }
+  }
 }

@@ -17,6 +17,7 @@
 package com.github.richardballard.arbeeutils.concurrent;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import net.jcip.annotations.Immutable;
@@ -35,257 +36,223 @@ import java.util.function.Supplier;
 
 /**
  * This class is a variant of the basic function of {@link ScheduledExecutorService} but it allows the operation
- * that gets run to decide whether to run again or not.  The delay between execution is specified when {@link #start(OperationConfig, Supplier, Duration)}
- * is called.  The execution delay can be variable based on time, for example a user initiated call to a service where
- * initially you poll frequently for a response but over time you can poll progressivly less frequently.
+ * that gets run to decide whether to run again or not.  The delay between execution is specified when
+ * {@link #start(OperationConfig, Supplier, Duration)} is called.  The execution delay can be variable based on time,
+ * for example a user initiated call to a service where initially you poll frequently for a response but over time you
+ * can poll progressively less frequently.
  */
+@SuppressWarnings("WeakerAccess")
 @ThreadSafe
 public class VariableDelayRepeatingExecutorService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(VariableDelayRepeatingExecutorService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(VariableDelayRepeatingExecutorService.class);
 
-    @NotNull
-    private final ScheduledExecutorService executorService;
+  private final @NotNull ScheduledExecutorService executorService;
 
-    @NotNull
-    private final Supplier<? extends TimeTick> currentTimeTickSupplier;
+  private final @NotNull Supplier<? extends TimeTick> currentTimeTickSupplier;
 
-    public VariableDelayRepeatingExecutorService(@NotNull final ScheduledExecutorService executorService,
-                                                 @NotNull final Supplier<? extends TimeTick> currentTimeTickSupplier) {
-        assert executorService != null;
-        assert currentTimeTickSupplier != null;
+  public VariableDelayRepeatingExecutorService(final @NotNull ScheduledExecutorService executorService,
+                                               final @NotNull Supplier<? extends TimeTick> currentTimeTickSupplier) {
 
-        this.executorService = executorService;
-        this.currentTimeTickSupplier = currentTimeTickSupplier;
+    this.executorService = executorService;
+    this.currentTimeTickSupplier = currentTimeTickSupplier;
+  }
+
+  private @NotNull ImmutableSortedMap<TimeTick, Duration> mapFromOperationConfig(
+      final @NotNull OperationConfig operationConfig) {
+
+    final ImmutableSortedMap.Builder<TimeTick, Duration> mapBuilder = ImmutableSortedMap.naturalOrder();
+
+    TimeTick tick = currentTimeTickSupplier.get();
+    for(final OperationConfig.FrequencyForDuration frequencyForDuration :
+        operationConfig.getFrequencyForDurations()) {
+
+      // translate it from 'how long this frequency occurs for' to actual time ticks
+      mapBuilder.put(tick,
+                     frequencyForDuration.getExecutionFrequency());
+
+      tick = tick.plus(frequencyForDuration.getActiveForDuration());
     }
 
-    @NotNull
-    private ImmutableSortedMap<TimeTick, Duration> mapFromOperationConfig(@NotNull final OperationConfig operationConfig) {
-        assert operationConfig != null;
+    // add the final one
+    mapBuilder.put(tick,
+                   operationConfig.getFinalExecutionFrequency());
 
-        final ImmutableSortedMap.Builder<TimeTick, Duration> mapBuilder = ImmutableSortedMap.naturalOrder();
+    return mapBuilder.build();
+  }
 
-        TimeTick tick = currentTimeTickSupplier.get();
-        for(final OperationConfig.FrequencyForDuration frequencyForDuration : operationConfig.getFrequencyForDurations()) {
+  private void schedule(final @NotNull DelayedExecution execution) {
 
-            // translate it from 'how long this frequency occurs for' to actual time ticks
-            mapBuilder.put(tick,
-                           frequencyForDuration.getExecutionFrequency());
+    executorService.schedule(execution.getRunningConfig(),
+                             execution.getDelay().toNanos(),
+                             TimeUnit.NANOSECONDS);
+  }
 
-            tick = tick.plus(frequencyForDuration.getActiveForDuration());
-        }
+  /**
+   * Start an operation (after waiting for {@code initialDelay}).
+   */
+  public void start(final @NotNull OperationConfig operationConfig,
+                    final @NotNull Supplier<WhatToDoNext> operation,
+                    final @NotNull Duration initialDelay) {
 
-        // add the final one
-        mapBuilder.put(tick,
-                       operationConfig.getFinalExecutionFrequency());
+    final RunningConfig runningConfig = new RunningConfig(operation,
+                                                          mapFromOperationConfig(operationConfig),
+                                                          this::schedule,
+                                                          currentTimeTickSupplier);
 
-        return mapBuilder.build();
+    schedule(new DelayedExecution(runningConfig,
+                                  initialDelay));
+  }
+
+  @VisibleForTesting
+  @ThreadSafe
+  static class RunningConfig implements Runnable {
+    private final @NotNull Supplier<WhatToDoNext> operation;
+
+    private final @NotNull ImmutableSortedMap<TimeTick, Duration> timeTickToExecutionFrequencyMap;
+
+    private final @NotNull Consumer<? super DelayedExecution> executionReceiver;
+
+    private final @NotNull Supplier<? extends TimeTick> currentTimeTickSupplier;
+
+    public RunningConfig(final @NotNull Supplier<WhatToDoNext> operation,
+                         final @NotNull ImmutableSortedMap<TimeTick, Duration> timeTickToExecutionFrequencyMap,
+                         final @NotNull Consumer<? super DelayedExecution> executionReceiver,
+                         final @NotNull Supplier<? extends TimeTick> currentTimeTickSupplier) {
+
+      Preconditions.checkArgument(!timeTickToExecutionFrequencyMap.isEmpty());
+
+      this.operation = operation;
+      this.timeTickToExecutionFrequencyMap = timeTickToExecutionFrequencyMap;
+      this.executionReceiver = executionReceiver;
+      this.currentTimeTickSupplier = currentTimeTickSupplier;
     }
 
-    private void schedule(@NotNull final DelayedExecution execution) {
-        assert execution != null;
+    @Override
+    public void run() {
+      WhatToDoNext whatToDoNext;
+      try {
+        whatToDoNext = operation.get();
+      }
+      catch(final RuntimeException exc) {
+        LOGGER.warn("caught exception when executing operation",
+                    exc);
 
-        executorService.schedule(execution.getRunningConfig(),
-                                 execution.getDelay().toNanos(),
-                                 TimeUnit.NANOSECONDS);
+        whatToDoNext = WhatToDoNext.STOP_EXECUTION;
+      }
+
+      if(whatToDoNext == WhatToDoNext.DELAY_THEN_EXECUTE) {
+        final Map.Entry<TimeTick, Duration> floorEntry
+            = timeTickToExecutionFrequencyMap.floorEntry(currentTimeTickSupplier.get());
+
+        // this should never be null as when the map is constructed the current time (which is prior to 'now')
+        // is added
+        assert floorEntry != null;
+
+        final Duration delay = floorEntry.getValue();
+
+        executionReceiver.accept(new DelayedExecution(this,
+                                                      delay));
+      }
     }
+  }
+
+  @Immutable
+  private static class DelayedExecution {
+    private final @NotNull RunningConfig runningConfig;
+
+    private final @NotNull Duration delay;
+
+    public DelayedExecution(final @NotNull RunningConfig runningConfig,
+                            final @NotNull Duration delay) {
+
+      this.runningConfig = runningConfig;
+      this.delay = delay;
+    }
+
+    public @NotNull RunningConfig getRunningConfig() {
+      return runningConfig;
+    }
+
+    public @NotNull Duration getDelay() {
+      return delay;
+    }
+  }
+
+  @Immutable
+  public enum WhatToDoNext {
+    /**
+     * Wait the appropriate delay before performing another execution.
+     */
+    DELAY_THEN_EXECUTE,
 
     /**
-     * Start an operation (after waiting for {@code initialDelay}).
+     * Do not perform any more executions
      */
-    public void start(@NotNull final OperationConfig operationConfig,
-                      @NotNull final Supplier<WhatToDoNext> operation,
-                      @NotNull final Duration initialDelay) {
-        assert operationConfig != null;
-        assert operation != null;
-        assert initialDelay != null;
+    STOP_EXECUTION
+  }
 
-        final RunningConfig runningConfig = new RunningConfig(operation,
-                                                              mapFromOperationConfig(operationConfig),
-                                                              this::schedule,
-                                                              currentTimeTickSupplier);
+  @Immutable
+  public static class OperationConfig {
 
-        schedule(new DelayedExecution(runningConfig,
-                                      initialDelay));
+    private final @NotNull ImmutableList<FrequencyForDuration> frequencyForDurations;
+
+    private final @NotNull Duration finalExecutionFrequency;
+
+    /**
+     * Set up a map from 'time block' (i.e. when this is in effect) to execution frequency.  For example:
+     * <p/>
+     * - activeFor 2s, executionFreq 10s
+     * - activeFor 5s, executionFreq 13s
+     * - finalExecFreq 30s
+     * <p/>
+     * In the config above it is saying "for the first 2s then the execution frequency is 10, for the next 5s the
+     * execution frequency is 13s.  After this previous 5s is complete then for every time thereafter an execution
+     * frequency of 30s is in effect"
+     *
+     * @param frequencyForDurations A list of durations (bound for a specified time period).
+     * @param finalExecutionFrequency When all of the elements of {@code frequencyForDurations} have passed this is
+     *                                the execution frequency that will be in effect.
+     */
+    public OperationConfig(final @NotNull ImmutableList<FrequencyForDuration> frequencyForDurations,
+                           final @NotNull Duration finalExecutionFrequency) {
+
+      this.frequencyForDurations = frequencyForDurations;
+      this.finalExecutionFrequency = finalExecutionFrequency;
     }
 
-    @VisibleForTesting
-    @ThreadSafe
-    static class RunningConfig implements Runnable {
-        @NotNull
-        private final Supplier<WhatToDoNext> operation;
+    public @NotNull ImmutableList<FrequencyForDuration> getFrequencyForDurations() {
+      return frequencyForDurations;
+    }
 
-        @NotNull
-        private final ImmutableSortedMap<TimeTick, Duration> timeTickToExecutionFrequencyMap;
-
-        @NotNull
-        private final Consumer<? super DelayedExecution> executionReceiver;
-
-        @NotNull
-        private final Supplier<? extends TimeTick> currentTimeTickSupplier;
-
-        public RunningConfig(@NotNull final Supplier<WhatToDoNext> operation,
-                             @NotNull final ImmutableSortedMap<TimeTick, Duration> timeTickToExecutionFrequencyMap,
-                             @NotNull final Consumer<? super DelayedExecution> executionReceiver,
-                             @NotNull final Supplier<? extends TimeTick> currentTimeTickSupplier) {
-            assert operation != null;
-            assert timeTickToExecutionFrequencyMap != null;
-            assert executionReceiver != null;
-            assert currentTimeTickSupplier != null;
-
-            assert !timeTickToExecutionFrequencyMap.isEmpty();
-
-            this.operation = operation;
-            //noinspection AssignmentToCollectionOrArrayFieldFromParameter
-            this.timeTickToExecutionFrequencyMap = timeTickToExecutionFrequencyMap;
-            this.executionReceiver = executionReceiver;
-            this.currentTimeTickSupplier = currentTimeTickSupplier;
-        }
-
-        @Override
-        public void run() {
-            WhatToDoNext whatToDoNext;
-            try {
-                whatToDoNext = operation.get();
-            }
-            catch(final RuntimeException exc) {
-                LOGGER.warn("caught exception when executing operation",
-                            exc);
-
-                whatToDoNext = WhatToDoNext.STOP_EXECUTION;
-            }
-
-            if(whatToDoNext == WhatToDoNext.DELAY_THEN_EXECUTE) {
-                final Map.Entry<TimeTick, Duration> floorEntry
-                        = timeTickToExecutionFrequencyMap.floorEntry(currentTimeTickSupplier.get());
-
-                // this should never be null as when the map is constructed the current time (which is prior to 'now')
-                // is added
-                assert floorEntry != null;
-
-                final Duration delay = floorEntry.getValue();
-
-                executionReceiver.accept(new DelayedExecution(this,
-                                                              delay));
-            }
-        }
+    public @NotNull Duration getFinalExecutionFrequency() {
+      return finalExecutionFrequency;
     }
 
     @Immutable
-    private static class DelayedExecution {
-        @NotNull
-        private final RunningConfig runningConfig;
+    public static class FrequencyForDuration {
+      private final @NotNull Duration activeForDuration;
 
-        @NotNull
-        private final Duration delay;
+      private final @NotNull Duration executionFrequency;
 
-        public DelayedExecution(@NotNull final RunningConfig runningConfig,
-                                @NotNull final Duration delay) {
-            assert runningConfig != null;
-            assert delay != null;
+      /**
+       *
+       * @param activeForDuration how long this execution frequency is in effect for
+       * @param executionFrequency the execution frequency when time is within the {@code activeForDuration}
+       */
+      public FrequencyForDuration(final @NotNull Duration activeForDuration,
+                                  final @NotNull Duration executionFrequency) {
 
-            this.runningConfig = runningConfig;
-            this.delay = delay;
-        }
+        this.activeForDuration = activeForDuration;
+        this.executionFrequency = executionFrequency;
+      }
 
-        @NotNull
-        public RunningConfig getRunningConfig() {
-            return runningConfig;
-        }
+      public @NotNull Duration getActiveForDuration() {
+        return activeForDuration;
+      }
 
-        @NotNull
-        public Duration getDelay() {
-            return delay;
-        }
+      public @NotNull Duration getExecutionFrequency() {
+        return executionFrequency;
+      }
     }
-
-    @Immutable
-    public enum WhatToDoNext {
-        /**
-         * Wait the appropriate delay before performing another execution.
-         */
-        DELAY_THEN_EXECUTE,
-
-        /**
-         * Do not perform any more executions
-         */
-        STOP_EXECUTION
-    }
-
-    @Immutable
-    public static class OperationConfig {
-
-        @NotNull
-        private final ImmutableList<FrequencyForDuration> frequencyForDurations;
-
-        @NotNull
-        private final Duration finalExecutionFrequency;
-
-        /**
-         * Set up a map from 'time block' (i.e. when this is in effect) to execution frequency.  For example:
-         * <p/>
-         * - activeFor 2s, executionFreq 10s
-         * - activeFor 5s, executionFreq 13s
-         * - finalExecFreq 30s
-         * <p/>
-         * In the config above it is saying "for the first 2s then the execution frequency is 10, for the next 5s the
-         * execution frequency is 13s.  After this previous 5s is complete then for every time thereafter an execution
-         * frequency of 30s is in effect"
-         *
-         * @param frequencyForDurations A list of durations (bound for a specified time period).
-         * @param finalExecutionFrequency When all of the elements of {@code frequencyForDurations} have passed this is
-         *                                the execution frequency that will be in effect.
-         */
-        public OperationConfig(@NotNull final ImmutableList<FrequencyForDuration> frequencyForDurations,
-                               @NotNull final Duration finalExecutionFrequency) {
-            assert frequencyForDurations != null;
-            assert finalExecutionFrequency != null;
-
-            //noinspection AssignmentToCollectionOrArrayFieldFromParameter
-            this.frequencyForDurations = frequencyForDurations;
-            this.finalExecutionFrequency = finalExecutionFrequency;
-        }
-
-        @NotNull
-        public ImmutableList<FrequencyForDuration> getFrequencyForDurations() {
-            return frequencyForDurations;
-        }
-
-        @NotNull
-        public Duration getFinalExecutionFrequency() {
-            return finalExecutionFrequency;
-        }
-
-        @Immutable
-        public static class FrequencyForDuration {
-            @NotNull
-            private final Duration activeForDuration;
-
-            @NotNull
-            private final Duration executionFrequency;
-
-            /**
-             *
-             * @param activeForDuration how long this execution frequency is in effect for
-             * @param executionFrequency the execution frequency when time is within the {@code activeForDuration}
-             */
-            public FrequencyForDuration(@NotNull final Duration activeForDuration,
-                                        @NotNull final Duration executionFrequency) {
-                assert activeForDuration != null;
-                assert executionFrequency != null;
-
-                this.activeForDuration = activeForDuration;
-                this.executionFrequency = executionFrequency;
-            }
-
-            @NotNull
-            public Duration getActiveForDuration() {
-                return activeForDuration;
-            }
-
-            @NotNull
-            public Duration getExecutionFrequency() {
-                return executionFrequency;
-            }
-        }
-    }
+  }
 }

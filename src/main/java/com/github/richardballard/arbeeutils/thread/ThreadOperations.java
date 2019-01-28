@@ -20,7 +20,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 
+@SuppressWarnings("InterfaceWithOnlyOneDirectInheritor")
 public interface ThreadOperations {
 
-    void sleep(@NotNull final Duration duration);
+  void sleep(final @NotNull Duration duration);
 }

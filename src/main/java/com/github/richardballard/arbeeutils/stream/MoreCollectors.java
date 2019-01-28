@@ -31,72 +31,68 @@ import java.util.stream.Collector;
 /**
  * Some extra {@link Collector} implementations for things like guava lists.
  */
+@SuppressWarnings("StaticMethodOnlyUsedInOneClass")
 @Immutable
 public enum MoreCollectors {
-    ;
+  ;
 
-    /**
-     * Based on code from <a href="https://dzone.com/articles/java-8-collectors-guava">here</a>
-     */
-    @NotNull
-    public static <T> Collector<T, ?, ImmutableList<T>> toImmutableList() {
+  /**
+   * Based on code from <a href="https://dzone.com/articles/java-8-collectors-guava">here</a>
+   */
+  public static @NotNull <T> Collector<T, ?, ImmutableList<T>> toImmutableList() {
 
-        final Supplier<ImmutableList.Builder<T>> supplier = ImmutableList.Builder::new;
+    final Supplier<ImmutableList.Builder<T>> supplier = ImmutableList.Builder::new;
 
-        final BiConsumer<ImmutableList.Builder<T>, T> accumulator = ImmutableList.Builder::add;
+    final BiConsumer<ImmutableList.Builder<T>, T> accumulator = ImmutableList.Builder::add;
 
-        final BinaryOperator<ImmutableList.Builder<T>> combiner = (l, r) -> l.addAll(r.build());
+    final BinaryOperator<ImmutableList.Builder<T>> combiner = (l, r) -> l.addAll(r.build());
 
-        final Function<ImmutableList.Builder<T>, ImmutableList<T>> finisher = ImmutableList.Builder::build;
+    final Function<ImmutableList.Builder<T>, ImmutableList<T>> finisher = ImmutableList.Builder::build;
 
-        return Collector.of(supplier,
-                            accumulator,
-                            combiner,
-                            finisher);
-    }
+    return Collector.of(supplier,
+                        accumulator,
+                        combiner,
+                        finisher);
+  }
 
-    /**
-     * Based on code from <a href="https://dzone.com/articles/java-8-collectors-guava">here</a>
-     */
-    @NotNull
-    public static <T> Collector<T, ?, ImmutableSet<T>> toImmutableSet() {
+  /**
+   * Based on code from <a href="https://dzone.com/articles/java-8-collectors-guava">here</a>
+   */
+  public static @NotNull <T> Collector<T, ?, ImmutableSet<T>> toImmutableSet() {
 
-        final Supplier<ImmutableSet.Builder<T>> supplier = ImmutableSet.Builder::new;
+    final Supplier<ImmutableSet.Builder<T>> supplier = ImmutableSet.Builder::new;
 
-        final BiConsumer<ImmutableSet.Builder<T>, T> accumulator = ImmutableSet.Builder::add;
+    final BiConsumer<ImmutableSet.Builder<T>, T> accumulator = ImmutableSet.Builder::add;
 
-        final BinaryOperator<ImmutableSet.Builder<T>> combiner = (l, r) -> l.addAll(r.build());
+    final BinaryOperator<ImmutableSet.Builder<T>> combiner = (l, r) -> l.addAll(r.build());
 
-        final Function<ImmutableSet.Builder<T>, ImmutableSet<T>> finisher = ImmutableSet.Builder::build;
+    final Function<ImmutableSet.Builder<T>, ImmutableSet<T>> finisher = ImmutableSet.Builder::build;
 
-        return Collector.of(supplier,
-                            accumulator,
-                            combiner,
-                            finisher);
-    }
+    return Collector.of(supplier,
+                        accumulator,
+                        combiner,
+                        finisher);
+  }
 
-    /**
-     * Based on code from <a href="https://dzone.com/articles/java-8-collectors-guava">here</a>
-     */
-    @NotNull
-    public static <T, K, V> Collector<T, ?, ImmutableMap<K, V>>
-    toImmutableMap(@NotNull final Function<? super T, ? extends K> keyMapper,
-                   @NotNull final Function<? super T, ? extends V> valueMapper) {
-        assert keyMapper != null;
-        assert valueMapper != null;
+  /**
+   * Based on code from <a href="https://dzone.com/articles/java-8-collectors-guava">here</a>
+   */
+  public static @NotNull <T, K, V> Collector<T, ?, ImmutableMap<K, V>>
+  toImmutableMap(final @NotNull Function<? super T, ? extends K> keyMapper,
+                 final @NotNull Function<? super T, ? extends V> valueMapper) {
 
-        final Supplier<ImmutableMap.Builder<K, V>> supplier = ImmutableMap.Builder::new;
+    final Supplier<ImmutableMap.Builder<K, V>> supplier = ImmutableMap.Builder::new;
 
-        final BiConsumer<ImmutableMap.Builder<K, V>, T> accumulator = (b, t) -> b.put(keyMapper.apply(t),
-                                                                                      valueMapper.apply(t));
+    final BiConsumer<ImmutableMap.Builder<K, V>, T> accumulator = (b, t) -> b.put(keyMapper.apply(t),
+                                                                                  valueMapper.apply(t));
 
-        final BinaryOperator<ImmutableMap.Builder<K, V>> combiner = (l, r) -> l.putAll(r.build());
+    final BinaryOperator<ImmutableMap.Builder<K, V>> combiner = (l, r) -> l.putAll(r.build());
 
-        final Function<ImmutableMap.Builder<K, V>, ImmutableMap<K, V>> finisher = ImmutableMap.Builder::build;
+    final Function<ImmutableMap.Builder<K, V>, ImmutableMap<K, V>> finisher = ImmutableMap.Builder::build;
 
-        return Collector.of(supplier,
-                            accumulator,
-                            combiner,
-                            finisher);
-    }
+    return Collector.of(supplier,
+                        accumulator,
+                        combiner,
+                        finisher);
+  }
 }

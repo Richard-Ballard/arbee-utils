@@ -25,9 +25,7 @@ public enum MoreThrowables {
      * If the given {@code throwable} is an instance of {@link RuntimeException} then it is returned, otherwise it is
      * wrapped in a {@link RuntimeException}.
      */
-    @NotNull
-    public static RuntimeException asRuntimeException(@NotNull final Throwable throwable) {
-        assert throwable != null;
+    public static @NotNull RuntimeException asRuntimeException(final @NotNull Throwable throwable) {
 
         final RuntimeException result;
         if(throwable instanceof RuntimeException) {

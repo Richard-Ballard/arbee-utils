@@ -28,127 +28,120 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Test
 public class TimeTickTest {
-    public void instanceCanBeCreatedWithNegativeTicks() {
-        //noinspection ResultOfObjectAllocationIgnored
-        new TimeTick(-1L);
-    }
+  public void instanceCanBeCreatedWithNegativeTicks() {
+    //noinspection ResultOfObjectAllocationIgnored
+    new TimeTick(-1L);
+  }
 
-    @DataProvider(name = "compareToTestData")
-    @NotNull
-    public CompareToTestData[][] getCompareToTestData() {
-        return new CompareToTestData[][] {
-                { new CompareToTestData(new TimeTick(1L), new TimeTick(1L), 0) },
-                { new CompareToTestData(new TimeTick(1L), new TimeTick(2L), -1) },
-                { new CompareToTestData(new TimeTick(2L), new TimeTick(1L), 1) },
+  @DataProvider(name = "compareToTestData")
+  public @NotNull CompareToTestData[][] getCompareToTestData() {
+    return new CompareToTestData[][] {
+        { new CompareToTestData(new TimeTick(1L), new TimeTick(1L), 0) },
+        { new CompareToTestData(new TimeTick(1L), new TimeTick(2L), -1) },
+        { new CompareToTestData(new TimeTick(2L), new TimeTick(1L), 1) },
 
-                { new CompareToTestData(new TimeTick(-1L), new TimeTick(-1L), 0) },
-                { new CompareToTestData(new TimeTick(-1L), new TimeTick(-2L), 1) },
-                { new CompareToTestData(new TimeTick(-2L), new TimeTick(-1L), -1) },
+        { new CompareToTestData(new TimeTick(-1L), new TimeTick(-1L), 0) },
+        { new CompareToTestData(new TimeTick(-1L), new TimeTick(-2L), 1) },
+        { new CompareToTestData(new TimeTick(-2L), new TimeTick(-1L), -1) },
         };
+  }
+
+  @Test(dataProvider = "compareToTestData")
+  public void compareToReturnsExpected(final @NotNull CompareToTestData data) {
+
+    assertThat(data.getFirst().compareTo(data.getSecond()))
+        .isEqualTo(data.getExpectedResult());
+  }
+
+  @SuppressWarnings("WeakerAccess")
+  @Immutable
+  public static class CompareToTestData {
+    private final @NotNull TimeTick first;
+
+    private final @NotNull TimeTick second;
+
+    private final int expectedResult;
+
+    public CompareToTestData(final @NotNull TimeTick first,
+                             final @NotNull TimeTick second,
+                             final int expectedResult) {
+
+      this.first = first;
+      this.second = second;
+      this.expectedResult = expectedResult;
     }
 
-    @Test(dataProvider = "compareToTestData")
-    public void compareToReturnsExpected(@NotNull final CompareToTestData data) {
-        assert data != null;
-
-        assertThat(data.getFirst().compareTo(data.getSecond()))
-                .isEqualTo(data.getExpectedResult());
+    public @NotNull TimeTick getFirst() {
+      return first;
     }
 
-    @Immutable
-    public static class CompareToTestData {
-        @NotNull
-        private final TimeTick first;
-
-        @NotNull
-        private final TimeTick second;
-
-        private final int expectedResult;
-
-        public CompareToTestData(@NotNull final TimeTick first,
-                                 @NotNull final TimeTick second,
-                                 final int expectedResult) {
-            assert first != null;
-            assert second != null;
-
-            this.first = first;
-            this.second = second;
-            this.expectedResult = expectedResult;
-        }
-
-        @NotNull
-        public TimeTick getFirst() {
-            return first;
-        }
-
-        @NotNull
-        public TimeTick getSecond() {
-            return second;
-        }
-
-        public int getExpectedResult() {
-            return expectedResult;
-        }
-
-        @Override
-        public String toString() {
-            return "CompareToTestData{" +
-                   "first=" + first +
-                   ", second=" + second +
-                   ", expectedResult=" + expectedResult +
-                   '}';
-        }
+    public @NotNull TimeTick getSecond() {
+      return second;
     }
 
-    public void durationSinceThrowsIfStartAfterEnd() {
-        final TimeTick startTick = new TimeTick(6L);
-        final TimeTick endTick = new TimeTick(5L);
-
-        assertThatThrownBy(() -> endTick.durationSince(startTick))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("start tick (" + startTick + ") must not be after this tick (" + endTick + ')');
+    public int getExpectedResult() {
+      return expectedResult;
     }
 
-    public void durationSinceHandlesZeroDuration() {
-        final TimeTick startTick = new TimeTick(6L);
-
-        assertThat(startTick.durationSince(startTick))
-                .isEqualTo(Duration.ZERO);
+    @Override
+    public String toString() {
+      return "CompareToTestData{" +
+             "first=" + first +
+             ", second=" + second +
+             ", expectedResult=" + expectedResult +
+             '}';
     }
+  }
 
-    public void durationSinceHandlesNonZeroDuration() {
-        final TimeTick startTick = new TimeTick(6L);
-        final TimeTick endTick = new TimeTick(10L);
+  public void durationSinceThrowsIfStartAfterEnd() {
+    final TimeTick startTick = new TimeTick(6L);
+    final TimeTick endTick = new TimeTick(5L);
 
-        assertThat(endTick.durationSince(startTick))
-                .isEqualTo(Duration.ofNanos(4L));
-    }
+    assertThatThrownBy(() -> endTick.durationSince(startTick))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("start tick (" + startTick + ") must not be after this tick (" + endTick + ')');
+  }
 
-    public void plusThrowsOnOverflow() {
-        final TimeTick startTick = new TimeTick(Long.MAX_VALUE);
+  public void durationSinceHandlesZeroDuration() {
+    final TimeTick startTick = new TimeTick(6L);
 
-        assertThatThrownBy(() -> startTick.plus(Duration.ofNanos(1L)))
-                .isInstanceOf(ArithmeticException.class);
-    }
+    assertThat(startTick.durationSince(startTick))
+        .isEqualTo(Duration.ZERO);
+  }
 
-    public void plusThrowsOnUnderflow() {
-        final TimeTick startTick = new TimeTick(Long.MIN_VALUE);
+  public void durationSinceHandlesNonZeroDuration() {
+    final TimeTick startTick = new TimeTick(6L);
+    final TimeTick endTick = new TimeTick(10L);
 
-        assertThatThrownBy(() -> startTick.plus(Duration.ofNanos(-1L)))
-                .isInstanceOf(ArithmeticException.class);
-    }
+    assertThat(endTick.durationSince(startTick))
+        .isEqualTo(Duration.ofNanos(4L));
+  }
 
-    public void plusAddsPositive() {
-        final TimeTick startTick = new TimeTick(1L);
+  public void plusThrowsOnOverflow() {
+    final TimeTick startTick = new TimeTick(Long.MAX_VALUE);
 
-        assertThat(startTick.plus(Duration.ofNanos(10L)))
-                .isEqualTo(new TimeTick(11L));
-    }
+    assertThatThrownBy(() -> startTick.plus(Duration.ofNanos(1L)))
+        .isInstanceOf(ArithmeticException.class);
+  }
 
-    public void plusAddsNegative() {
-        final TimeTick startTick = new TimeTick(1L);
+  public void plusThrowsOnUnderflow() {
+    final TimeTick startTick = new TimeTick(Long.MIN_VALUE);
 
-        assertThat(startTick.plus(Duration.ofNanos(-10L)))
-                .isEqualTo(new TimeTick(-9L));
-    }
+    assertThatThrownBy(() -> startTick.plus(Duration.ofNanos(-1L)))
+        .isInstanceOf(ArithmeticException.class);
+  }
+
+  public void plusAddsPositive() {
+    final TimeTick startTick = new TimeTick(1L);
+
+    assertThat(startTick.plus(Duration.ofNanos(10L)))
+        .isEqualTo(new TimeTick(11L));
+  }
+
+  public void plusAddsNegative() {
+    final TimeTick startTick = new TimeTick(1L);
+
+    assertThat(startTick.plus(Duration.ofNanos(-10L)))
+        .isEqualTo(new TimeTick(-9L));
+  }
 }

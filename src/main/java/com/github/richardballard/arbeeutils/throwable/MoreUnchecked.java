@@ -16,7 +16,6 @@
 
 package com.github.richardballard.arbeeutils.throwable;
 
-import com.google.common.base.Throwables;
 import net.jcip.annotations.Immutable;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,43 +27,41 @@ import java.util.function.Consumer;
  * Like {@link org.jooq.lambda.Unchecked} but the methods of this class actually make the call to the lambda
  * (rather than returning a construct that *will* make the call).
  */
+@SuppressWarnings("unused")
 @Immutable
 public enum MoreUnchecked {
-    ;
+  ;
 
-    /**
-     * A {@link Consumer} that wraps any {@link Throwable} in a {@link RuntimeException}.
-     */
-    public static final Consumer<Throwable> PROPAGATE_AS_RUNTIME_EXCEPTION = thr -> {
-        throw MoreThrowables.asRuntimeException(thr);
-    };
+  /**
+   * A {@link Consumer} that wraps any {@link Throwable} in a {@link RuntimeException}.
+   */
+  public static final Consumer<Throwable> PROPAGATE_AS_RUNTIME_EXCEPTION = thr -> {
+    //noinspection ProhibitedExceptionThrown
+    throw MoreThrowables.asRuntimeException(thr);
+  };
 
-    /**
-     * Calls {@link Callable#call()}.  If this throws then the exception will be passed to {@code handler}
-     */
-    public static <T> T call(@NotNull final Callable<T> callable,
-                             @NotNull final Consumer<? super Throwable> handler) {
-        assert callable != null;
-        assert handler != null;
+  /**
+   * Calls {@link Callable#call()}.  If this throws then the exception will be passed to {@code handler}
+   */
+  public static <T> T call(final @NotNull Callable<T> callable,
+                           final @NotNull Consumer<? super Throwable> handler) {
 
-        //noinspection OverlyBroadCatchBlock
-        try {
-            return callable.call();
-        }
-        catch (final Throwable e) {
-            handler.accept(e);
-
-            throw new IllegalStateException("Exception handler must throw a RuntimeException", e);
-        }
+    try {
+      return callable.call();
     }
+    catch (@SuppressWarnings("OverlyBroadCatchBlock") final Throwable e) {
+      handler.accept(e);
 
-    /**
-     * Same as {@link #call(Callable, Consumer)} but uses {@link #PROPAGATE_AS_RUNTIME_EXCEPTION} as the handler
-     */
-    public static <T> T call(@NotNull final Callable<T> callable) {
-        assert callable != null;
-
-        return call(callable,
-                    PROPAGATE_AS_RUNTIME_EXCEPTION);
+      throw new IllegalStateException("Exception handler must throw a RuntimeException", e);
     }
+  }
+
+  /**
+   * Same as {@link #call(Callable, Consumer)} but uses {@link #PROPAGATE_AS_RUNTIME_EXCEPTION} as the handler
+   */
+  public static <T> T call(final @NotNull Callable<T> callable) {
+
+    return call(callable,
+                PROPAGATE_AS_RUNTIME_EXCEPTION);
+  }
 }

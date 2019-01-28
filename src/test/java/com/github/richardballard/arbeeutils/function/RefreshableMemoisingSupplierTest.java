@@ -30,67 +30,66 @@ import static org.mockito.Mockito.when;
 @Test
 public class RefreshableMemoisingSupplierTest {
 
-    @NotNull
-    private Supplier<Integer> getDelegate() {
-        return MoreMockUtils.mockSupplierMultipleAnswers(ImmutableList.of(1, 2, 3, 4, 5, 6, 7, 8));
-    }
+  private @NotNull Supplier<Integer> getDelegate() {
+    return MoreMockUtils.mockSupplierMultipleAnswers(ImmutableList.of(1, 2, 3, 4, 5, 6, 7, 8));
+  }
 
-    public void getReturnsMemoised() {
-        final RefreshableMemoisingSupplier<Integer> supplier = new RefreshableMemoisingSupplier<>(getDelegate());
+  public void getReturnsMemoised() {
+    final RefreshableMemoisingSupplier<Integer> supplier = new RefreshableMemoisingSupplier<>(getDelegate());
 
-        assertThat(supplier.get())
-                .isEqualTo(1);
+    assertThat(supplier.get())
+        .isEqualTo(1);
 
-        assertThat(supplier.get())
-                .isEqualTo(1);
-    }
+    assertThat(supplier.get())
+        .isEqualTo(1);
+  }
 
-    public void invalidateOnceAdvancesMemoised() {
-        final RefreshableMemoisingSupplier<Integer> supplier = new RefreshableMemoisingSupplier<>(getDelegate());
+  public void invalidateOnceAdvancesMemoised() {
+    final RefreshableMemoisingSupplier<Integer> supplier = new RefreshableMemoisingSupplier<>(getDelegate());
 
-        assertThat(supplier.get())
-                .isEqualTo(1);
+    assertThat(supplier.get())
+        .isEqualTo(1);
 
-        supplier.invalidate();
+    supplier.invalidate();
 
-        assertThat(supplier.get())
-                .isEqualTo(2);
-    }
+    assertThat(supplier.get())
+        .isEqualTo(2);
+  }
 
-    public void invalidateMultipleAdvancesMemoised() {
-        final RefreshableMemoisingSupplier<Integer> supplier = new RefreshableMemoisingSupplier<>(getDelegate());
+  public void invalidateMultipleAdvancesMemoised() {
+    final RefreshableMemoisingSupplier<Integer> supplier = new RefreshableMemoisingSupplier<>(getDelegate());
 
-        assertThat(supplier.get())
-                .isEqualTo(1);
+    assertThat(supplier.get())
+        .isEqualTo(1);
 
-        supplier.invalidate();
-        supplier.invalidate();
-        supplier.invalidate();
+    supplier.invalidate();
+    supplier.invalidate();
+    supplier.invalidate();
 
-        assertThat(supplier.get())
-                .isEqualTo(2);
-    }
+    assertThat(supplier.get())
+        .isEqualTo(2);
+  }
 
-    public void invalidateDuringGetAdvancesMemoised() {
-        final Supplier<Integer> delegate = getDelegate();
+  public void invalidateDuringGetAdvancesMemoised() {
+    final Supplier<Integer> delegate = getDelegate();
 
-        final RefreshableMemoisingSupplier<Integer> supplier = new RefreshableMemoisingSupplier<>(delegate);
+    final RefreshableMemoisingSupplier<Integer> supplier = new RefreshableMemoisingSupplier<>(delegate);
 
-        final AtomicInteger count = new AtomicInteger(1);
+    final AtomicInteger count = new AtomicInteger(1);
 
-        when(delegate.get())
-                .thenAnswer(invocation -> {
-                    supplier.invalidate();
+    when(delegate.get())
+        .thenAnswer(invocation -> {
+          supplier.invalidate();
 
-                    return count.getAndIncrement();
-                });
+          return count.getAndIncrement();
+        });
 
-        assertThat(supplier.get())
-                .isEqualTo(1);
+    assertThat(supplier.get())
+        .isEqualTo(1);
 
-        assertThat(supplier.get())
-                .isEqualTo(2);
-    }
+    assertThat(supplier.get())
+        .isEqualTo(2);
+  }
 
 
 }
