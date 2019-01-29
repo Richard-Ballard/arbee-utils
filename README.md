@@ -7,7 +7,7 @@ To download the most recent maven artifact go to [Maven Central](http://search.m
 ## Release Notes
 Release | Changes
 --- |  ---
-2.0-SNAPSHOT | <ul><li>Updated 3rd party library versions</li></ul>
+2.0 | <ul><li>Updated 3rd party library versions</li><li>Bringing things up to date after a 2 year hiatus</li></ul>
 1.6 | <ul><li>Removed logback from dependancies</li><li>Updated 3rd party library versions</li><li>Added `com.github.richardballard.arbeeutils.throwable.MoreThrowables.asRuntimeException`</li></ul>
 1.5 | <ul><li>Created `change` package and moved classes to it</li><li>Moved `ActionOnExcRunnable` to `throwable` package</li><li>Created `execution` package and moved classes to it</li><li>Added `SerialisableOptional`</li></ul>
 1.4 | <ul><li>Updated 3rd party library versions</li></ul>
